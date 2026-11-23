@@ -1,0 +1,88 @@
+-- R12 | READ | Space detail: reviews with reviewer name and owner reply
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+
+-- Query:
+SELECT u.full_name AS reviewer, rv.rating, rv.comment, rv.owner_reply, rv.created_at
+FROM reviews rv
+JOIN bookings b ON b.id = rv.booking_id
+JOIN users u    ON u.id = b.renter_id
+WHERE b.space_id = 1
+ORDER BY rv.created_at DESC;
+
+=== R12 run 1 ===
+Sort  (cost=24.57..24.58 rows=2 width=106) (actual time=0.008..0.009 rows=1.00 loops=1)
+  Sort Key: rv.created_at DESC
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=12 dirtied=1
+  ->  Nested Loop  (cost=0.44..24.56 rows=2 width=106) (actual time=0.003..0.006 rows=1.00 loops=1)
+        Buffers: shared hit=9 dirtied=1
+        ->  Nested Loop  (cost=0.29..16.37 rows=1 width=36) (actual time=0.002..0.005 rows=2.00 loops=1)
+              Buffers: shared hit=6 dirtied=1
+              ->  Index Scan using bookings_space_id_starts_at_ends_at_idx on bookings b  (cost=0.15..8.17 rows=1 width=8) (actual time=0.001..0.001 rows=2.00 loops=1)
+                    Index Cond: (space_id = 1)
+                    Index Searches: 1
+                    Buffers: shared hit=2
+              ->  Index Scan using users_pkey on users u  (cost=0.15..8.17 rows=1 width=36) (actual time=0.001..0.001 rows=1.00 loops=2)
+                    Index Cond: (id = b.renter_id)
+                    Index Searches: 2
+                    Buffers: shared hit=4 dirtied=1
+        ->  Index Scan using reviews_booking_id_key on reviews rv  (cost=0.15..8.17 rows=1 width=78) (actual time=0.000..0.000 rows=0.50 loops=2)
+              Index Cond: (booking_id = b.id)
+              Index Searches: 2
+              Buffers: shared hit=3
+Planning:
+  Buffers: shared hit=13
+Planning Time: 0.052 ms
+Execution Time: 0.014 ms
+
+=== R12 run 2 ===
+Sort  (cost=24.57..24.58 rows=2 width=106) (actual time=0.007..0.008 rows=1.00 loops=1)
+  Sort Key: rv.created_at DESC
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=12
+  ->  Nested Loop  (cost=0.44..24.56 rows=2 width=106) (actual time=0.003..0.005 rows=1.00 loops=1)
+        Buffers: shared hit=9
+        ->  Nested Loop  (cost=0.29..16.37 rows=1 width=36) (actual time=0.002..0.003 rows=2.00 loops=1)
+              Buffers: shared hit=6
+              ->  Index Scan using bookings_space_id_starts_at_ends_at_idx on bookings b  (cost=0.15..8.17 rows=1 width=8) (actual time=0.001..0.001 rows=2.00 loops=1)
+                    Index Cond: (space_id = 1)
+                    Index Searches: 1
+                    Buffers: shared hit=2
+              ->  Index Scan using users_pkey on users u  (cost=0.15..8.17 rows=1 width=36) (actual time=0.001..0.001 rows=1.00 loops=2)
+                    Index Cond: (id = b.renter_id)
+                    Index Searches: 2
+                    Buffers: shared hit=4
+        ->  Index Scan using reviews_booking_id_key on reviews rv  (cost=0.15..8.17 rows=1 width=78) (actual time=0.000..0.000 rows=0.50 loops=2)
+              Index Cond: (booking_id = b.id)
+              Index Searches: 2
+              Buffers: shared hit=3
+Planning:
+  Buffers: shared hit=13
+Planning Time: 0.045 ms
+Execution Time: 0.014 ms
+
+=== R12 run 3 ===
+Sort  (cost=24.57..24.58 rows=2 width=106) (actual time=0.007..0.007 rows=1.00 loops=1)
+  Sort Key: rv.created_at DESC
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=12
+  ->  Nested Loop  (cost=0.44..24.56 rows=2 width=106) (actual time=0.003..0.004 rows=1.00 loops=1)
+        Buffers: shared hit=9
+        ->  Nested Loop  (cost=0.29..16.37 rows=1 width=36) (actual time=0.002..0.003 rows=2.00 loops=1)
+              Buffers: shared hit=6
+              ->  Index Scan using bookings_space_id_starts_at_ends_at_idx on bookings b  (cost=0.15..8.17 rows=1 width=8) (actual time=0.001..0.001 rows=2.00 loops=1)
+                    Index Cond: (space_id = 1)
+                    Index Searches: 1
+                    Buffers: shared hit=2
+              ->  Index Scan using users_pkey on users u  (cost=0.15..8.17 rows=1 width=36) (actual time=0.001..0.001 rows=1.00 loops=2)
+                    Index Cond: (id = b.renter_id)
+                    Index Searches: 2
+                    Buffers: shared hit=4
+        ->  Index Scan using reviews_booking_id_key on reviews rv  (cost=0.15..8.17 rows=1 width=78) (actual time=0.000..0.000 rows=0.50 loops=2)
+              Index Cond: (booking_id = b.id)
+              Index Searches: 2
+              Buffers: shared hit=3
+Planning:
+  Buffers: shared hit=13
+Planning Time: 0.056 ms
+Execution Time: 0.013 ms

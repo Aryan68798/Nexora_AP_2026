@@ -1,0 +1,142 @@
+-- R31 | READ | Platform stats: gross booking value per city and share of total (CTE + window)
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+
+-- Query:
+WITH booking_totals AS (
+  SELECT b.space_id,
+         b.unit_price * b.units + b.cleaning_fee + b.service_fee
+           + b.tax_amount - b.discount_amount AS total
+  FROM bookings b
+  WHERE b.status IN ('CONFIRMED', 'COMPLETED')
+)
+SELECT c.name AS city,
+       SUM(bt.total) AS gross_booking_value,
+       ROUND(100 * SUM(bt.total) / SUM(SUM(bt.total)) OVER (), 1) AS share_pct
+FROM booking_totals bt
+JOIN spaces s ON s.id = bt.space_id
+JOIN cities c ON c.id = s.city_id
+GROUP BY c.name
+ORDER BY gross_booking_value DESC;
+
+=== R31 run 1 ===
+Sort  (cost=25.74..25.75 rows=3 width=96) (actual time=0.023..0.023 rows=3.00 loops=1)
+  Sort Key: (sum((((((b.unit_price * (b.units)::numeric) + b.cleaning_fee) + b.service_fee) + b.tax_amount) - b.discount_amount))) DESC
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=11
+  ->  WindowAgg  (cost=25.65..25.72 rows=3 width=96) (actual time=0.021..0.022 rows=3.00 loops=1)
+        Window: w1 AS ()
+        Storage: Memory  Maximum Storage: 17kB
+        Buffers: shared hit=11
+        ->  GroupAggregate  (cost=25.55..25.66 rows=3 width=64) (actual time=0.016..0.018 rows=3.00 loops=1)
+              Group Key: c.name
+              Buffers: shared hit=11
+              ->  Sort  (cost=25.55..25.56 rows=3 width=116) (actual time=0.013..0.013 rows=4.00 loops=1)
+                    Sort Key: c.name
+                    Sort Method: quicksort  Memory: 25kB
+                    Buffers: shared hit=11
+                    ->  Nested Loop  (cost=11.47..25.53 rows=3 width=116) (actual time=0.008..0.010 rows=4.00 loops=1)
+                          Buffers: shared hit=11
+                          ->  Hash Join  (cost=11.32..24.37 rows=3 width=88) (actual time=0.007..0.008 rows=4.00 loops=1)
+                                Hash Cond: (s.id = b.space_id)
+                                Buffers: shared hit=3
+                                ->  Seq Scan on spaces s  (cost=0.00..12.20 rows=220 width=8) (actual time=0.001..0.002 rows=6.00 loops=1)
+                                      Buffers: shared hit=1
+                                ->  Hash  (cost=11.28..11.28 rows=3 width=88) (actual time=0.005..0.005 rows=4.00 loops=1)
+                                      Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                      Buffers: shared hit=2
+                                      ->  Bitmap Heap Scan on bookings b  (cost=4.17..11.28 rows=3 width=88) (actual time=0.003..0.003 rows=4.00 loops=1)
+                                            Recheck Cond: (status = ANY ('{CONFIRMED,COMPLETED}'::"BookingStatus"[]))
+                                            Heap Blocks: exact=1
+                                            Buffers: shared hit=2
+                                            ->  Bitmap Index Scan on bookings_status_idx  (cost=0.00..4.17 rows=3 width=0) (actual time=0.001..0.001 rows=5.00 loops=1)
+                                                  Index Cond: (status = ANY ('{CONFIRMED,COMPLETED}'::"BookingStatus"[]))
+                                                  Index Searches: 1
+                                                  Buffers: shared hit=1
+                          ->  Index Scan using cities_pkey on cities c  (cost=0.15..0.39 rows=1 width=36) (actual time=0.000..0.000 rows=1.00 loops=4)
+                                Index Cond: (id = s.city_id)
+                                Index Searches: 4
+                                Buffers: shared hit=8
+Planning Time: 0.086 ms
+Execution Time: 0.034 ms
+
+=== R31 run 2 ===
+Sort  (cost=25.74..25.75 rows=3 width=96) (actual time=0.023..0.024 rows=3.00 loops=1)
+  Sort Key: (sum((((((b.unit_price * (b.units)::numeric) + b.cleaning_fee) + b.service_fee) + b.tax_amount) - b.discount_amount))) DESC
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=11
+  ->  WindowAgg  (cost=25.65..25.72 rows=3 width=96) (actual time=0.021..0.022 rows=3.00 loops=1)
+        Window: w1 AS ()
+        Storage: Memory  Maximum Storage: 17kB
+        Buffers: shared hit=11
+        ->  GroupAggregate  (cost=25.55..25.66 rows=3 width=64) (actual time=0.015..0.017 rows=3.00 loops=1)
+              Group Key: c.name
+              Buffers: shared hit=11
+              ->  Sort  (cost=25.55..25.56 rows=3 width=116) (actual time=0.011..0.012 rows=4.00 loops=1)
+                    Sort Key: c.name
+                    Sort Method: quicksort  Memory: 25kB
+                    Buffers: shared hit=11
+                    ->  Nested Loop  (cost=11.47..25.53 rows=3 width=116) (actual time=0.007..0.009 rows=4.00 loops=1)
+                          Buffers: shared hit=11
+                          ->  Hash Join  (cost=11.32..24.37 rows=3 width=88) (actual time=0.006..0.007 rows=4.00 loops=1)
+                                Hash Cond: (s.id = b.space_id)
+                                Buffers: shared hit=3
+                                ->  Seq Scan on spaces s  (cost=0.00..12.20 rows=220 width=8) (actual time=0.001..0.001 rows=6.00 loops=1)
+                                      Buffers: shared hit=1
+                                ->  Hash  (cost=11.28..11.28 rows=3 width=88) (actual time=0.004..0.004 rows=4.00 loops=1)
+                                      Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                      Buffers: shared hit=2
+                                      ->  Bitmap Heap Scan on bookings b  (cost=4.17..11.28 rows=3 width=88) (actual time=0.002..0.003 rows=4.00 loops=1)
+                                            Recheck Cond: (status = ANY ('{CONFIRMED,COMPLETED}'::"BookingStatus"[]))
+                                            Heap Blocks: exact=1
+                                            Buffers: shared hit=2
+                                            ->  Bitmap Index Scan on bookings_status_idx  (cost=0.00..4.17 rows=3 width=0) (actual time=0.001..0.001 rows=5.00 loops=1)
+                                                  Index Cond: (status = ANY ('{CONFIRMED,COMPLETED}'::"BookingStatus"[]))
+                                                  Index Searches: 1
+                                                  Buffers: shared hit=1
+                          ->  Index Scan using cities_pkey on cities c  (cost=0.15..0.39 rows=1 width=36) (actual time=0.000..0.000 rows=1.00 loops=4)
+                                Index Cond: (id = s.city_id)
+                                Index Searches: 4
+                                Buffers: shared hit=8
+Planning Time: 0.085 ms
+Execution Time: 0.034 ms
+
+=== R31 run 3 ===
+Sort  (cost=25.74..25.75 rows=3 width=96) (actual time=0.024..0.024 rows=3.00 loops=1)
+  Sort Key: (sum((((((b.unit_price * (b.units)::numeric) + b.cleaning_fee) + b.service_fee) + b.tax_amount) - b.discount_amount))) DESC
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=11
+  ->  WindowAgg  (cost=25.65..25.72 rows=3 width=96) (actual time=0.022..0.023 rows=3.00 loops=1)
+        Window: w1 AS ()
+        Storage: Memory  Maximum Storage: 17kB
+        Buffers: shared hit=11
+        ->  GroupAggregate  (cost=25.55..25.66 rows=3 width=64) (actual time=0.018..0.019 rows=3.00 loops=1)
+              Group Key: c.name
+              Buffers: shared hit=11
+              ->  Sort  (cost=25.55..25.56 rows=3 width=116) (actual time=0.015..0.015 rows=4.00 loops=1)
+                    Sort Key: c.name
+                    Sort Method: quicksort  Memory: 25kB
+                    Buffers: shared hit=11
+                    ->  Nested Loop  (cost=11.47..25.53 rows=3 width=116) (actual time=0.009..0.012 rows=4.00 loops=1)
+                          Buffers: shared hit=11
+                          ->  Hash Join  (cost=11.32..24.37 rows=3 width=88) (actual time=0.008..0.009 rows=4.00 loops=1)
+                                Hash Cond: (s.id = b.space_id)
+                                Buffers: shared hit=3
+                                ->  Seq Scan on spaces s  (cost=0.00..12.20 rows=220 width=8) (actual time=0.002..0.002 rows=6.00 loops=1)
+                                      Buffers: shared hit=1
+                                ->  Hash  (cost=11.28..11.28 rows=3 width=88) (actual time=0.005..0.005 rows=4.00 loops=1)
+                                      Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                      Buffers: shared hit=2
+                                      ->  Bitmap Heap Scan on bookings b  (cost=4.17..11.28 rows=3 width=88) (actual time=0.003..0.004 rows=4.00 loops=1)
+                                            Recheck Cond: (status = ANY ('{CONFIRMED,COMPLETED}'::"BookingStatus"[]))
+                                            Heap Blocks: exact=1
+                                            Buffers: shared hit=2
+                                            ->  Bitmap Index Scan on bookings_status_idx  (cost=0.00..4.17 rows=3 width=0) (actual time=0.001..0.001 rows=5.00 loops=1)
+                                                  Index Cond: (status = ANY ('{CONFIRMED,COMPLETED}'::"BookingStatus"[]))
+                                                  Index Searches: 1
+                                                  Buffers: shared hit=1
+                          ->  Index Scan using cities_pkey on cities c  (cost=0.15..0.39 rows=1 width=36) (actual time=0.000..0.000 rows=1.00 loops=4)
+                                Index Cond: (id = s.city_id)
+                                Index Searches: 4
+                                Buffers: shared hit=8
+Planning Time: 0.076 ms
+Execution Time: 0.037 ms

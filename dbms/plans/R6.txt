@@ -1,0 +1,123 @@
+-- R6 | READ | Filter: active spaces that have ALL the chosen amenities
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+
+-- Query:
+SELECT s.id, s.title
+FROM spaces s
+JOIN space_amenities sa ON sa.space_id = s.id
+JOIN amenities a        ON a.id = sa.amenity_id
+WHERE s.status = 'ACTIVE'
+  AND a.name IN ('Wi-Fi', 'Projector')
+GROUP BY s.id, s.title
+HAVING COUNT(DISTINCT a.id) = 2;
+
+=== R6 run 1 ===
+GroupAggregate  (cost=24.63..24.65 rows=1 width=36) (actual time=0.065..0.066 rows=2.00 loops=1)
+  Group Key: s.id
+  Filter: (count(DISTINCT a.id) = 2)
+  Rows Removed by Filter: 2
+  Buffers: shared hit=56 read=4
+  ->  Sort  (cost=24.63..24.63 rows=1 width=40) (actual time=0.062..0.063 rows=6.00 loops=1)
+        Sort Key: s.id, a.id
+        Sort Method: quicksort  Memory: 25kB
+        Buffers: shared hit=56 read=4
+        ->  Nested Loop  (cost=4.52..24.62 rows=1 width=40) (actual time=0.047..0.061 rows=6.00 loops=1)
+              Buffers: shared hit=56 read=4
+              ->  Nested Loop  (cost=4.37..23.02 rows=8 width=40) (actual time=0.037..0.044 rows=24.00 loops=1)
+                    Buffers: shared hit=10 read=2
+                    ->  Index Scan using spaces_status_idx on spaces s  (cost=0.14..8.16 rows=1 width=36) (actual time=0.002..0.003 rows=5.00 loops=1)
+                          Index Cond: (status = 'ACTIVE'::"SpaceStatus")
+                          Index Searches: 1
+                          Buffers: shared hit=2
+                    ->  Bitmap Heap Scan on space_amenities sa  (cost=4.22..14.76 rows=9 width=8) (actual time=0.007..0.008 rows=4.80 loops=5)
+                          Recheck Cond: (s.id = space_id)
+                          Heap Blocks: exact=5
+                          Buffers: shared hit=8 read=2
+                          ->  Bitmap Index Scan on space_amenities_pkey  (cost=0.00..4.22 rows=9 width=0) (actual time=0.001..0.001 rows=4.80 loops=5)
+                                Index Cond: (space_id = s.id)
+                                Index Searches: 5
+                                Buffers: shared hit=4 read=1
+              ->  Index Scan using amenities_pkey on amenities a  (cost=0.15..0.20 rows=1 width=4) (actual time=0.001..0.001 rows=0.25 loops=24)
+                    Index Cond: (id = sa.amenity_id)
+                    Filter: (name = ANY ('{Wi-Fi,Projector}'::text[]))
+                    Rows Removed by Filter: 1
+                    Index Searches: 24
+                    Buffers: shared hit=46 read=2
+Planning:
+  Buffers: shared hit=85 read=4
+Planning Time: 0.279 ms
+Execution Time: 0.077 ms
+
+=== R6 run 2 ===
+GroupAggregate  (cost=24.63..24.65 rows=1 width=36) (actual time=0.026..0.027 rows=2.00 loops=1)
+  Group Key: s.id
+  Filter: (count(DISTINCT a.id) = 2)
+  Rows Removed by Filter: 2
+  Buffers: shared hit=60
+  ->  Sort  (cost=24.63..24.63 rows=1 width=40) (actual time=0.025..0.025 rows=6.00 loops=1)
+        Sort Key: s.id, a.id
+        Sort Method: quicksort  Memory: 25kB
+        Buffers: shared hit=60
+        ->  Nested Loop  (cost=4.52..24.62 rows=1 width=40) (actual time=0.012..0.024 rows=6.00 loops=1)
+              Buffers: shared hit=60
+              ->  Nested Loop  (cost=4.37..23.02 rows=8 width=40) (actual time=0.007..0.012 rows=24.00 loops=1)
+                    Buffers: shared hit=12
+                    ->  Index Scan using spaces_status_idx on spaces s  (cost=0.14..8.16 rows=1 width=36) (actual time=0.002..0.002 rows=5.00 loops=1)
+                          Index Cond: (status = 'ACTIVE'::"SpaceStatus")
+                          Index Searches: 1
+                          Buffers: shared hit=2
+                    ->  Bitmap Heap Scan on space_amenities sa  (cost=4.22..14.76 rows=9 width=8) (actual time=0.001..0.001 rows=4.80 loops=5)
+                          Recheck Cond: (s.id = space_id)
+                          Heap Blocks: exact=5
+                          Buffers: shared hit=10
+                          ->  Bitmap Index Scan on space_amenities_pkey  (cost=0.00..4.22 rows=9 width=0) (actual time=0.000..0.000 rows=4.80 loops=5)
+                                Index Cond: (space_id = s.id)
+                                Index Searches: 5
+                                Buffers: shared hit=5
+              ->  Index Scan using amenities_pkey on amenities a  (cost=0.15..0.20 rows=1 width=4) (actual time=0.000..0.000 rows=0.25 loops=24)
+                    Index Cond: (id = sa.amenity_id)
+                    Filter: (name = ANY ('{Wi-Fi,Projector}'::text[]))
+                    Rows Removed by Filter: 1
+                    Index Searches: 24
+                    Buffers: shared hit=48
+Planning:
+  Buffers: shared hit=89
+Planning Time: 0.224 ms
+Execution Time: 0.035 ms
+
+=== R6 run 3 ===
+GroupAggregate  (cost=24.63..24.65 rows=1 width=36) (actual time=0.029..0.030 rows=2.00 loops=1)
+  Group Key: s.id
+  Filter: (count(DISTINCT a.id) = 2)
+  Rows Removed by Filter: 2
+  Buffers: shared hit=60
+  ->  Sort  (cost=24.63..24.63 rows=1 width=40) (actual time=0.027..0.028 rows=6.00 loops=1)
+        Sort Key: s.id, a.id
+        Sort Method: quicksort  Memory: 25kB
+        Buffers: shared hit=60
+        ->  Nested Loop  (cost=4.52..24.62 rows=1 width=40) (actual time=0.011..0.026 rows=6.00 loops=1)
+              Buffers: shared hit=60
+              ->  Nested Loop  (cost=4.37..23.02 rows=8 width=40) (actual time=0.005..0.013 rows=24.00 loops=1)
+                    Buffers: shared hit=12
+                    ->  Index Scan using spaces_status_idx on spaces s  (cost=0.14..8.16 rows=1 width=36) (actual time=0.002..0.002 rows=5.00 loops=1)
+                          Index Cond: (status = 'ACTIVE'::"SpaceStatus")
+                          Index Searches: 1
+                          Buffers: shared hit=2
+                    ->  Bitmap Heap Scan on space_amenities sa  (cost=4.22..14.76 rows=9 width=8) (actual time=0.001..0.001 rows=4.80 loops=5)
+                          Recheck Cond: (s.id = space_id)
+                          Heap Blocks: exact=5
+                          Buffers: shared hit=10
+                          ->  Bitmap Index Scan on space_amenities_pkey  (cost=0.00..4.22 rows=9 width=0) (actual time=0.001..0.001 rows=4.80 loops=5)
+                                Index Cond: (space_id = s.id)
+                                Index Searches: 5
+                                Buffers: shared hit=5
+              ->  Index Scan using amenities_pkey on amenities a  (cost=0.15..0.20 rows=1 width=4) (actual time=0.000..0.000 rows=0.25 loops=24)
+                    Index Cond: (id = sa.amenity_id)
+                    Filter: (name = ANY ('{Wi-Fi,Projector}'::text[]))
+                    Rows Removed by Filter: 1
+                    Index Searches: 24
+                    Buffers: shared hit=48
+Planning:
+  Buffers: shared hit=89
+Planning Time: 0.191 ms
+Execution Time: 0.036 ms

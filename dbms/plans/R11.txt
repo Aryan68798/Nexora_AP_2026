@@ -1,0 +1,62 @@
+-- R11 | READ | Space detail: weekly opening hours (0 = Sunday)
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+
+-- Query:
+SELECT day_of_week, opens_at, closes_at
+FROM availability_rules
+WHERE space_id = 1
+ORDER BY day_of_week, opens_at;
+
+=== R11 run 1 ===
+Sort  (cost=13.74..13.76 rows=6 width=18) (actual time=0.040..0.040 rows=5.00 loops=1)
+  Sort Key: day_of_week, opens_at
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=8 read=2
+  ->  Bitmap Heap Scan on availability_rules  (cost=4.20..13.67 rows=6 width=18) (actual time=0.035..0.035 rows=5.00 loops=1)
+        Recheck Cond: (space_id = 1)
+        Heap Blocks: exact=1
+        Buffers: shared read=2
+        ->  Bitmap Index Scan on availability_rules_space_id_day_of_week_opens_at_key  (cost=0.00..4.20 rows=6 width=0) (actual time=0.002..0.002 rows=5.00 loops=1)
+              Index Cond: (space_id = 1)
+              Index Searches: 1
+              Buffers: shared read=1
+Planning:
+  Buffers: shared hit=76 read=2
+Planning Time: 0.129 ms
+Execution Time: 0.043 ms
+
+=== R11 run 2 ===
+Sort  (cost=13.74..13.76 rows=6 width=18) (actual time=0.012..0.012 rows=5.00 loops=1)
+  Sort Key: day_of_week, opens_at
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=10
+  ->  Bitmap Heap Scan on availability_rules  (cost=4.20..13.67 rows=6 width=18) (actual time=0.006..0.006 rows=5.00 loops=1)
+        Recheck Cond: (space_id = 1)
+        Heap Blocks: exact=1
+        Buffers: shared hit=2
+        ->  Bitmap Index Scan on availability_rules_space_id_day_of_week_opens_at_key  (cost=0.00..4.20 rows=6 width=0) (actual time=0.001..0.001 rows=5.00 loops=1)
+              Index Cond: (space_id = 1)
+              Index Searches: 1
+              Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=78
+Planning Time: 0.102 ms
+Execution Time: 0.015 ms
+
+=== R11 run 3 ===
+Sort  (cost=13.74..13.76 rows=6 width=18) (actual time=0.011..0.011 rows=5.00 loops=1)
+  Sort Key: day_of_week, opens_at
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=10
+  ->  Bitmap Heap Scan on availability_rules  (cost=4.20..13.67 rows=6 width=18) (actual time=0.005..0.005 rows=5.00 loops=1)
+        Recheck Cond: (space_id = 1)
+        Heap Blocks: exact=1
+        Buffers: shared hit=2
+        ->  Bitmap Index Scan on availability_rules_space_id_day_of_week_opens_at_key  (cost=0.00..4.20 rows=6 width=0) (actual time=0.001..0.001 rows=5.00 loops=1)
+              Index Cond: (space_id = 1)
+              Index Searches: 1
+              Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=78
+Planning Time: 0.113 ms
+Execution Time: 0.013 ms

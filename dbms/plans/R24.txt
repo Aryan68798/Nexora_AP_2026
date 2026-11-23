@@ -1,0 +1,89 @@
+-- R24 | READ | Owner's pending booking requests to accept or reject
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+
+-- Query:
+SELECT b.id, b.booking_code, s.title AS space, u.full_name AS renter,
+       b.starts_at, b.ends_at, b.guests, b.purpose
+FROM bookings b
+JOIN spaces s ON s.id = b.space_id
+JOIN users u  ON u.id = b.renter_id
+WHERE s.owner_id = 1 AND b.status = 'PENDING'
+ORDER BY b.starts_at;
+
+=== R24 run 1 ===
+Sort  (cost=24.55..24.55 rows=1 width=152) (actual time=0.007..0.007 rows=1.00 loops=1)
+  Sort Key: b.starts_at
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=8
+  ->  Nested Loop  (cost=0.43..24.54 rows=1 width=152) (actual time=0.004..0.006 rows=1.00 loops=1)
+        Buffers: shared hit=8
+        ->  Nested Loop  (cost=0.28..16.33 rows=1 width=124) (actual time=0.003..0.005 rows=1.00 loops=1)
+              Buffers: shared hit=6
+              ->  Index Scan using spaces_owner_id_idx on spaces s  (cost=0.14..8.16 rows=1 width=36) (actual time=0.001..0.001 rows=2.00 loops=1)
+                    Index Cond: (owner_id = 1)
+                    Index Searches: 1
+                    Buffers: shared hit=2
+              ->  Index Scan using bookings_no_overlap on bookings b  (cost=0.14..8.16 rows=1 width=96) (actual time=0.001..0.001 rows=0.50 loops=2)
+                    Index Cond: (space_id = s.id)
+                    Filter: (status = 'PENDING'::"BookingStatus")
+                    Rows Removed by Filter: 0
+                    Index Searches: 2
+                    Buffers: shared hit=4
+        ->  Index Scan using users_pkey on users u  (cost=0.15..8.17 rows=1 width=36) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: (id = b.renter_id)
+              Index Searches: 1
+              Buffers: shared hit=2
+Planning Time: 0.063 ms
+Execution Time: 0.014 ms
+
+=== R24 run 2 ===
+Sort  (cost=24.55..24.55 rows=1 width=152) (actual time=0.005..0.005 rows=1.00 loops=1)
+  Sort Key: b.starts_at
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=8
+  ->  Nested Loop  (cost=0.43..24.54 rows=1 width=152) (actual time=0.003..0.005 rows=1.00 loops=1)
+        Buffers: shared hit=8
+        ->  Nested Loop  (cost=0.28..16.33 rows=1 width=124) (actual time=0.003..0.004 rows=1.00 loops=1)
+              Buffers: shared hit=6
+              ->  Index Scan using spaces_owner_id_idx on spaces s  (cost=0.14..8.16 rows=1 width=36) (actual time=0.001..0.001 rows=2.00 loops=1)
+                    Index Cond: (owner_id = 1)
+                    Index Searches: 1
+                    Buffers: shared hit=2
+              ->  Index Scan using bookings_no_overlap on bookings b  (cost=0.14..8.16 rows=1 width=96) (actual time=0.001..0.001 rows=0.50 loops=2)
+                    Index Cond: (space_id = s.id)
+                    Filter: (status = 'PENDING'::"BookingStatus")
+                    Rows Removed by Filter: 0
+                    Index Searches: 2
+                    Buffers: shared hit=4
+        ->  Index Scan using users_pkey on users u  (cost=0.15..8.17 rows=1 width=36) (actual time=0.000..0.000 rows=1.00 loops=1)
+              Index Cond: (id = b.renter_id)
+              Index Searches: 1
+              Buffers: shared hit=2
+Planning Time: 0.055 ms
+Execution Time: 0.011 ms
+
+=== R24 run 3 ===
+Sort  (cost=24.55..24.55 rows=1 width=152) (actual time=0.005..0.006 rows=1.00 loops=1)
+  Sort Key: b.starts_at
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=8
+  ->  Nested Loop  (cost=0.43..24.54 rows=1 width=152) (actual time=0.004..0.005 rows=1.00 loops=1)
+        Buffers: shared hit=8
+        ->  Nested Loop  (cost=0.28..16.33 rows=1 width=124) (actual time=0.003..0.004 rows=1.00 loops=1)
+              Buffers: shared hit=6
+              ->  Index Scan using spaces_owner_id_idx on spaces s  (cost=0.14..8.16 rows=1 width=36) (actual time=0.001..0.001 rows=2.00 loops=1)
+                    Index Cond: (owner_id = 1)
+                    Index Searches: 1
+                    Buffers: shared hit=2
+              ->  Index Scan using bookings_no_overlap on bookings b  (cost=0.14..8.16 rows=1 width=96) (actual time=0.001..0.001 rows=0.50 loops=2)
+                    Index Cond: (space_id = s.id)
+                    Filter: (status = 'PENDING'::"BookingStatus")
+                    Rows Removed by Filter: 0
+                    Index Searches: 2
+                    Buffers: shared hit=4
+        ->  Index Scan using users_pkey on users u  (cost=0.15..8.17 rows=1 width=36) (actual time=0.000..0.000 rows=1.00 loops=1)
+              Index Cond: (id = b.renter_id)
+              Index Searches: 1
+              Buffers: shared hit=2
+Planning Time: 0.054 ms
+Execution Time: 0.010 ms

@@ -1,0 +1,62 @@
+-- R17 | READ | Booking detail: payment history
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+
+-- Query:
+SELECT kind, method, status, amount, provider_ref, processed_at
+FROM payments
+WHERE booking_id = 1
+ORDER BY created_at;
+
+=== R17 run 1 ===
+Sort  (cost=11.31..11.31 rows=3 width=76) (actual time=0.003..0.003 rows=1.00 loops=1)
+  Sort Key: created_at
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=2
+  ->  Bitmap Heap Scan on payments  (cost=4.17..11.28 rows=3 width=76) (actual time=0.002..0.002 rows=1.00 loops=1)
+        Recheck Cond: (booking_id = 1)
+        Heap Blocks: exact=1
+        Buffers: shared hit=2
+        ->  Bitmap Index Scan on payments_booking_id_idx  (cost=0.00..4.17 rows=3 width=0) (actual time=0.000..0.000 rows=1.00 loops=1)
+              Index Cond: (booking_id = 1)
+              Index Searches: 1
+              Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=5
+Planning Time: 0.015 ms
+Execution Time: 0.007 ms
+
+=== R17 run 2 ===
+Sort  (cost=11.31..11.31 rows=3 width=76) (actual time=0.003..0.003 rows=1.00 loops=1)
+  Sort Key: created_at
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=2
+  ->  Bitmap Heap Scan on payments  (cost=4.17..11.28 rows=3 width=76) (actual time=0.002..0.002 rows=1.00 loops=1)
+        Recheck Cond: (booking_id = 1)
+        Heap Blocks: exact=1
+        Buffers: shared hit=2
+        ->  Bitmap Index Scan on payments_booking_id_idx  (cost=0.00..4.17 rows=3 width=0) (actual time=0.000..0.000 rows=1.00 loops=1)
+              Index Cond: (booking_id = 1)
+              Index Searches: 1
+              Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=5
+Planning Time: 0.015 ms
+Execution Time: 0.007 ms
+
+=== R17 run 3 ===
+Sort  (cost=11.31..11.31 rows=3 width=76) (actual time=0.003..0.003 rows=1.00 loops=1)
+  Sort Key: created_at
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=2
+  ->  Bitmap Heap Scan on payments  (cost=4.17..11.28 rows=3 width=76) (actual time=0.002..0.002 rows=1.00 loops=1)
+        Recheck Cond: (booking_id = 1)
+        Heap Blocks: exact=1
+        Buffers: shared hit=2
+        ->  Bitmap Index Scan on payments_booking_id_idx  (cost=0.00..4.17 rows=3 width=0) (actual time=0.000..0.000 rows=1.00 loops=1)
+              Index Cond: (booking_id = 1)
+              Index Searches: 1
+              Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=5
+Planning Time: 0.012 ms
+Execution Time: 0.006 ms

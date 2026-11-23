@@ -1,0 +1,97 @@
+-- R14 | READ | Availability check: is the space free for the requested slot? No overlapping active booking and no overlapping blocked slot
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+
+-- Query:
+SELECT NOT EXISTS (
+         SELECT 1 FROM bookings b
+         WHERE b.space_id = 1
+           AND b.status IN ('PENDING', 'CONFIRMED')
+           AND tstzrange(b.starts_at, b.ends_at, '[)')
+               && tstzrange(date_trunc('day', now()) + interval '1 day 10 hours',
+                            date_trunc('day', now()) + interval '1 day 12 hours', '[)')
+       )
+       AND NOT EXISTS (
+         SELECT 1 FROM blocked_slots bs
+         WHERE bs.space_id = 1
+           AND tstzrange(bs.starts_at, bs.ends_at, '[)')
+               && tstzrange(date_trunc('day', now()) + interval '1 day 10 hours',
+                            date_trunc('day', now()) + interval '1 day 12 hours', '[)')
+       ) AS is_available;
+
+=== R14 run 1 ===
+Result  (cost=20.92..20.93 rows=1 width=1) (actual time=0.041..0.041 rows=1.00 loops=1)
+  Buffers: shared hit=2 read=2 dirtied=1
+  InitPlan 1
+    ->  Index Scan using bookings_space_id_starts_at_ends_at_idx on bookings b  (cost=0.15..8.19 rows=1 width=0) (actual time=0.002..0.002 rows=0.00 loops=1)
+          Index Cond: (space_id = 1)
+          Filter: ((status = ANY ('{PENDING,CONFIRMED}'::"BookingStatus"[])) AND (tstzrange(starts_at, ends_at, '[)'::text) && tstzrange((date_trunc('day'::text, now()) + '1 day 10:00:00'::interval), (date_trunc('day'::text, now()) + '1 day 12:00:00'::interval), '[)'::text)))
+          Rows Removed by Filter: 2
+          Index Searches: 1
+          Buffers: shared hit=2
+  InitPlan 2
+    ->  Bitmap Heap Scan on blocked_slots bs  (cost=4.18..12.73 rows=1 width=0) (actual time=0.038..0.038 rows=0.00 loops=1)
+          Recheck Cond: (space_id = 1)
+          Filter: (tstzrange(starts_at, ends_at, '[)'::text) && tstzrange((date_trunc('day'::text, now()) + '1 day 10:00:00'::interval), (date_trunc('day'::text, now()) + '1 day 12:00:00'::interval), '[)'::text))
+          Rows Removed by Filter: 1
+          Heap Blocks: exact=1
+          Buffers: shared read=2 dirtied=1
+          ->  Bitmap Index Scan on blocked_slots_space_id_starts_at_ends_at_idx  (cost=0.00..4.18 rows=4 width=0) (actual time=0.002..0.002 rows=2.00 loops=1)
+                Index Cond: (space_id = 1)
+                Index Searches: 1
+                Buffers: shared read=1
+Planning:
+  Buffers: shared hit=79 read=2
+Planning Time: 0.171 ms
+Execution Time: 0.048 ms
+
+=== R14 run 2 ===
+Result  (cost=20.92..20.93 rows=1 width=1) (actual time=0.007..0.007 rows=1.00 loops=1)
+  Buffers: shared hit=4
+  InitPlan 1
+    ->  Index Scan using bookings_space_id_starts_at_ends_at_idx on bookings b  (cost=0.15..8.19 rows=1 width=0) (actual time=0.003..0.003 rows=0.00 loops=1)
+          Index Cond: (space_id = 1)
+          Filter: ((status = ANY ('{PENDING,CONFIRMED}'::"BookingStatus"[])) AND (tstzrange(starts_at, ends_at, '[)'::text) && tstzrange((date_trunc('day'::text, now()) + '1 day 10:00:00'::interval), (date_trunc('day'::text, now()) + '1 day 12:00:00'::interval), '[)'::text)))
+          Rows Removed by Filter: 2
+          Index Searches: 1
+          Buffers: shared hit=2
+  InitPlan 2
+    ->  Bitmap Heap Scan on blocked_slots bs  (cost=4.18..12.73 rows=1 width=0) (actual time=0.004..0.004 rows=0.00 loops=1)
+          Recheck Cond: (space_id = 1)
+          Filter: (tstzrange(starts_at, ends_at, '[)'::text) && tstzrange((date_trunc('day'::text, now()) + '1 day 10:00:00'::interval), (date_trunc('day'::text, now()) + '1 day 12:00:00'::interval), '[)'::text))
+          Rows Removed by Filter: 1
+          Heap Blocks: exact=1
+          Buffers: shared hit=2
+          ->  Bitmap Index Scan on blocked_slots_space_id_starts_at_ends_at_idx  (cost=0.00..4.18 rows=4 width=0) (actual time=0.001..0.001 rows=2.00 loops=1)
+                Index Cond: (space_id = 1)
+                Index Searches: 1
+                Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=81
+Planning Time: 0.159 ms
+Execution Time: 0.013 ms
+
+=== R14 run 3 ===
+Result  (cost=20.92..20.93 rows=1 width=1) (actual time=0.009..0.009 rows=1.00 loops=1)
+  Buffers: shared hit=4
+  InitPlan 1
+    ->  Index Scan using bookings_space_id_starts_at_ends_at_idx on bookings b  (cost=0.15..8.19 rows=1 width=0) (actual time=0.003..0.003 rows=0.00 loops=1)
+          Index Cond: (space_id = 1)
+          Filter: ((status = ANY ('{PENDING,CONFIRMED}'::"BookingStatus"[])) AND (tstzrange(starts_at, ends_at, '[)'::text) && tstzrange((date_trunc('day'::text, now()) + '1 day 10:00:00'::interval), (date_trunc('day'::text, now()) + '1 day 12:00:00'::interval), '[)'::text)))
+          Rows Removed by Filter: 2
+          Index Searches: 1
+          Buffers: shared hit=2
+  InitPlan 2
+    ->  Bitmap Heap Scan on blocked_slots bs  (cost=4.18..12.73 rows=1 width=0) (actual time=0.005..0.005 rows=0.00 loops=1)
+          Recheck Cond: (space_id = 1)
+          Filter: (tstzrange(starts_at, ends_at, '[)'::text) && tstzrange((date_trunc('day'::text, now()) + '1 day 10:00:00'::interval), (date_trunc('day'::text, now()) + '1 day 12:00:00'::interval), '[)'::text))
+          Rows Removed by Filter: 1
+          Heap Blocks: exact=1
+          Buffers: shared hit=2
+          ->  Bitmap Index Scan on blocked_slots_space_id_starts_at_ends_at_idx  (cost=0.00..4.18 rows=4 width=0) (actual time=0.001..0.001 rows=2.00 loops=1)
+                Index Cond: (space_id = 1)
+                Index Searches: 1
+                Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=81
+Planning Time: 0.137 ms
+Execution Time: 0.016 ms

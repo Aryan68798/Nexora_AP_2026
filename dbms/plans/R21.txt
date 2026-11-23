@@ -1,0 +1,188 @@
+-- R21 | READ | Inbox: a user's conversations (as renter or as owner) with the last message and the unread count
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+
+-- Query:
+SELECT cv.id, s.title AS space,
+       renter.full_name AS renter,
+       last_msg.body AS last_message, last_msg.created_at AS last_message_at,
+       (SELECT COUNT(*) FROM messages m
+         WHERE m.conversation_id = cv.id AND m.sender_id <> 2 AND m.read_at IS NULL) AS unread
+FROM conversations cv
+JOIN spaces s          ON s.id  = cv.space_id
+JOIN owner_profiles op ON op.id = s.owner_id
+JOIN users renter      ON renter.id = cv.renter_id
+LEFT JOIN LATERAL (
+  SELECT body, created_at FROM messages m
+  WHERE m.conversation_id = cv.id
+  ORDER BY created_at DESC LIMIT 1
+) last_msg ON true
+WHERE cv.renter_id = 2 OR op.user_id = 2
+ORDER BY last_msg.created_at DESC NULLS LAST;
+
+=== R21 run 1 ===
+Sort  (cost=239.40..239.42 rows=10 width=116) (actual time=0.059..0.059 rows=1.00 loops=1)
+  Sort Key: m.created_at DESC NULLS LAST
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=6 read=3 dirtied=2
+  ->  Nested Loop Left Join  (cost=36.72..239.23 rows=10 width=116) (actual time=0.056..0.057 rows=1.00 loops=1)
+        Buffers: shared hit=6 read=3 dirtied=2
+        ->  Nested Loop  (cost=36.57..70.60 rows=10 width=68) (actual time=0.045..0.046 rows=1.00 loops=1)
+              Buffers: shared hit=4 read=1 dirtied=2
+              ->  Hash Join  (cost=36.43..68.62 rows=10 width=40) (actual time=0.044..0.044 rows=1.00 loops=1)
+                    Hash Cond: (s.owner_id = op.id)
+                    Join Filter: ((cv.renter_id = 2) OR (op.user_id = 2))
+                    Buffers: shared hit=2 read=1 dirtied=2
+                    ->  Hash Join  (cost=14.95..43.33 rows=1450 width=44) (actual time=0.037..0.037 rows=1.00 loops=1)
+                          Hash Cond: (cv.space_id = s.id)
+                          Buffers: shared hit=1 read=1 dirtied=1
+                          ->  Seq Scan on conversations cv  (cost=0.00..24.50 rows=1450 width=12) (actual time=0.031..0.031 rows=1.00 loops=1)
+                                Buffers: shared read=1 dirtied=1
+                          ->  Hash  (cost=12.20..12.20 rows=220 width=40) (actual time=0.004..0.004 rows=6.00 loops=1)
+                                Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                Buffers: shared hit=1
+                                ->  Seq Scan on spaces s  (cost=0.00..12.20 rows=220 width=40) (actual time=0.001..0.002 rows=6.00 loops=1)
+                                      Buffers: shared hit=1
+                    ->  Hash  (cost=15.10..15.10 rows=510 width=8) (actual time=0.003..0.003 rows=3.00 loops=1)
+                          Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                          Buffers: shared hit=1 dirtied=1
+                          ->  Seq Scan on owner_profiles op  (cost=0.00..15.10 rows=510 width=8) (actual time=0.001..0.001 rows=3.00 loops=1)
+                                Buffers: shared hit=1 dirtied=1
+              ->  Index Scan using users_pkey on users renter  (cost=0.15..0.20 rows=1 width=36) (actual time=0.001..0.001 rows=1.00 loops=1)
+                    Index Cond: (id = cv.renter_id)
+                    Index Searches: 1
+                    Buffers: shared hit=2
+        ->  Limit  (cost=0.15..4.17 rows=1 width=40) (actual time=0.007..0.007 rows=1.00 loops=1)
+              Buffers: shared read=2
+              ->  Index Scan Backward using messages_conversation_id_created_at_idx on messages m  (cost=0.15..20.24 rows=5 width=40) (actual time=0.007..0.007 rows=1.00 loops=1)
+                    Index Cond: (conversation_id = cv.id)
+                    Index Searches: 1
+                    Buffers: shared read=2
+        SubPlan 1
+          ->  Aggregate  (cost=12.68..12.69 rows=1 width=8) (actual time=0.003..0.003 rows=1.00 loops=1)
+                Buffers: shared hit=2
+                ->  Bitmap Heap Scan on messages m_1  (cost=4.19..12.67 rows=1 width=0) (actual time=0.002..0.002 rows=0.00 loops=1)
+                      Recheck Cond: (conversation_id = cv.id)
+                      Filter: ((read_at IS NULL) AND (sender_id <> 2))
+                      Rows Removed by Filter: 2
+                      Heap Blocks: exact=1
+                      Buffers: shared hit=2
+                      ->  Bitmap Index Scan on messages_conversation_id_created_at_idx  (cost=0.00..4.19 rows=5 width=0) (actual time=0.001..0.001 rows=2.00 loops=1)
+                            Index Cond: (conversation_id = cv.id)
+                            Index Searches: 1
+                            Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=105 read=6
+Planning Time: 0.352 ms
+Execution Time: 0.071 ms
+
+=== R21 run 2 ===
+Sort  (cost=239.40..239.42 rows=10 width=116) (actual time=0.021..0.022 rows=1.00 loops=1)
+  Sort Key: m.created_at DESC NULLS LAST
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=9
+  ->  Nested Loop Left Join  (cost=36.72..239.23 rows=10 width=116) (actual time=0.019..0.020 rows=1.00 loops=1)
+        Buffers: shared hit=9
+        ->  Nested Loop  (cost=36.57..70.60 rows=10 width=68) (actual time=0.013..0.014 rows=1.00 loops=1)
+              Buffers: shared hit=5
+              ->  Hash Join  (cost=36.43..68.62 rows=10 width=40) (actual time=0.012..0.013 rows=1.00 loops=1)
+                    Hash Cond: (s.owner_id = op.id)
+                    Join Filter: ((cv.renter_id = 2) OR (op.user_id = 2))
+                    Buffers: shared hit=3
+                    ->  Hash Join  (cost=14.95..43.33 rows=1450 width=44) (actual time=0.008..0.008 rows=1.00 loops=1)
+                          Hash Cond: (cv.space_id = s.id)
+                          Buffers: shared hit=2
+                          ->  Seq Scan on conversations cv  (cost=0.00..24.50 rows=1450 width=12) (actual time=0.003..0.003 rows=1.00 loops=1)
+                                Buffers: shared hit=1
+                          ->  Hash  (cost=12.20..12.20 rows=220 width=40) (actual time=0.003..0.003 rows=6.00 loops=1)
+                                Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                Buffers: shared hit=1
+                                ->  Seq Scan on spaces s  (cost=0.00..12.20 rows=220 width=40) (actual time=0.001..0.001 rows=6.00 loops=1)
+                                      Buffers: shared hit=1
+                    ->  Hash  (cost=15.10..15.10 rows=510 width=8) (actual time=0.002..0.002 rows=3.00 loops=1)
+                          Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                          Buffers: shared hit=1
+                          ->  Seq Scan on owner_profiles op  (cost=0.00..15.10 rows=510 width=8) (actual time=0.001..0.001 rows=3.00 loops=1)
+                                Buffers: shared hit=1
+              ->  Index Scan using users_pkey on users renter  (cost=0.15..0.20 rows=1 width=36) (actual time=0.001..0.001 rows=1.00 loops=1)
+                    Index Cond: (id = cv.renter_id)
+                    Index Searches: 1
+                    Buffers: shared hit=2
+        ->  Limit  (cost=0.15..4.17 rows=1 width=40) (actual time=0.003..0.003 rows=1.00 loops=1)
+              Buffers: shared hit=2
+              ->  Index Scan Backward using messages_conversation_id_created_at_idx on messages m  (cost=0.15..20.24 rows=5 width=40) (actual time=0.003..0.003 rows=1.00 loops=1)
+                    Index Cond: (conversation_id = cv.id)
+                    Index Searches: 1
+                    Buffers: shared hit=2
+        SubPlan 1
+          ->  Aggregate  (cost=12.68..12.69 rows=1 width=8) (actual time=0.002..0.002 rows=1.00 loops=1)
+                Buffers: shared hit=2
+                ->  Bitmap Heap Scan on messages m_1  (cost=4.19..12.67 rows=1 width=0) (actual time=0.002..0.002 rows=0.00 loops=1)
+                      Recheck Cond: (conversation_id = cv.id)
+                      Filter: ((read_at IS NULL) AND (sender_id <> 2))
+                      Rows Removed by Filter: 2
+                      Heap Blocks: exact=1
+                      Buffers: shared hit=2
+                      ->  Bitmap Index Scan on messages_conversation_id_created_at_idx  (cost=0.00..4.19 rows=5 width=0) (actual time=0.000..0.000 rows=2.00 loops=1)
+                            Index Cond: (conversation_id = cv.id)
+                            Index Searches: 1
+                            Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=111
+Planning Time: 0.296 ms
+Execution Time: 0.032 ms
+
+=== R21 run 3 ===
+Sort  (cost=239.40..239.42 rows=10 width=116) (actual time=0.025..0.025 rows=1.00 loops=1)
+  Sort Key: m.created_at DESC NULLS LAST
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=9
+  ->  Nested Loop Left Join  (cost=36.72..239.23 rows=10 width=116) (actual time=0.022..0.023 rows=1.00 loops=1)
+        Buffers: shared hit=9
+        ->  Nested Loop  (cost=36.57..70.60 rows=10 width=68) (actual time=0.014..0.015 rows=1.00 loops=1)
+              Buffers: shared hit=5
+              ->  Hash Join  (cost=36.43..68.62 rows=10 width=40) (actual time=0.013..0.013 rows=1.00 loops=1)
+                    Hash Cond: (s.owner_id = op.id)
+                    Join Filter: ((cv.renter_id = 2) OR (op.user_id = 2))
+                    Buffers: shared hit=3
+                    ->  Hash Join  (cost=14.95..43.33 rows=1450 width=44) (actual time=0.008..0.008 rows=1.00 loops=1)
+                          Hash Cond: (cv.space_id = s.id)
+                          Buffers: shared hit=2
+                          ->  Seq Scan on conversations cv  (cost=0.00..24.50 rows=1450 width=12) (actual time=0.003..0.003 rows=1.00 loops=1)
+                                Buffers: shared hit=1
+                          ->  Hash  (cost=12.20..12.20 rows=220 width=40) (actual time=0.003..0.003 rows=6.00 loops=1)
+                                Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                Buffers: shared hit=1
+                                ->  Seq Scan on spaces s  (cost=0.00..12.20 rows=220 width=40) (actual time=0.001..0.001 rows=6.00 loops=1)
+                                      Buffers: shared hit=1
+                    ->  Hash  (cost=15.10..15.10 rows=510 width=8) (actual time=0.002..0.002 rows=3.00 loops=1)
+                          Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                          Buffers: shared hit=1
+                          ->  Seq Scan on owner_profiles op  (cost=0.00..15.10 rows=510 width=8) (actual time=0.001..0.001 rows=3.00 loops=1)
+                                Buffers: shared hit=1
+              ->  Index Scan using users_pkey on users renter  (cost=0.15..0.20 rows=1 width=36) (actual time=0.001..0.001 rows=1.00 loops=1)
+                    Index Cond: (id = cv.renter_id)
+                    Index Searches: 1
+                    Buffers: shared hit=2
+        ->  Limit  (cost=0.15..4.17 rows=1 width=40) (actual time=0.003..0.003 rows=1.00 loops=1)
+              Buffers: shared hit=2
+              ->  Index Scan Backward using messages_conversation_id_created_at_idx on messages m  (cost=0.15..20.24 rows=5 width=40) (actual time=0.003..0.003 rows=1.00 loops=1)
+                    Index Cond: (conversation_id = cv.id)
+                    Index Searches: 1
+                    Buffers: shared hit=2
+        SubPlan 1
+          ->  Aggregate  (cost=12.68..12.69 rows=1 width=8) (actual time=0.004..0.004 rows=1.00 loops=1)
+                Buffers: shared hit=2
+                ->  Bitmap Heap Scan on messages m_1  (cost=4.19..12.67 rows=1 width=0) (actual time=0.004..0.004 rows=0.00 loops=1)
+                      Recheck Cond: (conversation_id = cv.id)
+                      Filter: ((read_at IS NULL) AND (sender_id <> 2))
+                      Rows Removed by Filter: 2
+                      Heap Blocks: exact=1
+                      Buffers: shared hit=2
+                      ->  Bitmap Index Scan on messages_conversation_id_created_at_idx  (cost=0.00..4.19 rows=5 width=0) (actual time=0.000..0.000 rows=2.00 loops=1)
+                            Index Cond: (conversation_id = cv.id)
+                            Index Searches: 1
+                            Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=111
+Planning Time: 0.294 ms
+Execution Time: 0.039 ms

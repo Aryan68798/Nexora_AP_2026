@@ -1,0 +1,96 @@
+-- R25 | READ | Owner's upcoming confirmed bookings (next 30 days)
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+
+-- Query:
+SELECT b.booking_code, s.title AS space, u.full_name AS renter, b.starts_at, b.ends_at
+FROM bookings b
+JOIN spaces s ON s.id = b.space_id
+JOIN users u  ON u.id = b.renter_id
+WHERE s.owner_id = 1
+  AND b.status = 'CONFIRMED'
+  AND b.starts_at BETWEEN now() AND now() + interval '30 days'
+ORDER BY b.starts_at;
+
+=== R25 run 1 ===
+Sort  (cost=24.56..24.56 rows=1 width=112) (actual time=0.005..0.006 rows=1.00 loops=1)
+  Sort Key: b.starts_at
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=8
+  ->  Nested Loop  (cost=0.43..24.55 rows=1 width=112) (actual time=0.005..0.005 rows=1.00 loops=1)
+        Buffers: shared hit=8
+        ->  Nested Loop  (cost=0.28..16.34 rows=1 width=84) (actual time=0.004..0.004 rows=1.00 loops=1)
+              Buffers: shared hit=6
+              ->  Index Scan using spaces_owner_id_idx on spaces s  (cost=0.14..8.16 rows=1 width=36) (actual time=0.001..0.001 rows=2.00 loops=1)
+                    Index Cond: (owner_id = 1)
+                    Index Searches: 1
+                    Buffers: shared hit=2
+              ->  Index Scan using bookings_no_overlap on bookings b  (cost=0.14..8.17 rows=1 width=56) (actual time=0.001..0.001 rows=0.50 loops=2)
+                    Index Cond: (space_id = s.id)
+                    Filter: ((status = 'CONFIRMED'::"BookingStatus") AND (starts_at >= now()) AND (starts_at <= (now() + '30 days'::interval)))
+                    Rows Removed by Filter: 0
+                    Index Searches: 2
+                    Buffers: shared hit=4
+        ->  Index Scan using users_pkey on users u  (cost=0.15..8.17 rows=1 width=36) (actual time=0.000..0.000 rows=1.00 loops=1)
+              Index Cond: (id = b.renter_id)
+              Index Searches: 1
+              Buffers: shared hit=2
+Planning:
+  Buffers: shared hit=6
+Planning Time: 0.065 ms
+Execution Time: 0.011 ms
+
+=== R25 run 2 ===
+Sort  (cost=24.56..24.56 rows=1 width=112) (actual time=0.005..0.005 rows=1.00 loops=1)
+  Sort Key: b.starts_at
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=8
+  ->  Nested Loop  (cost=0.43..24.55 rows=1 width=112) (actual time=0.005..0.005 rows=1.00 loops=1)
+        Buffers: shared hit=8
+        ->  Nested Loop  (cost=0.28..16.34 rows=1 width=84) (actual time=0.004..0.004 rows=1.00 loops=1)
+              Buffers: shared hit=6
+              ->  Index Scan using spaces_owner_id_idx on spaces s  (cost=0.14..8.16 rows=1 width=36) (actual time=0.001..0.001 rows=2.00 loops=1)
+                    Index Cond: (owner_id = 1)
+                    Index Searches: 1
+                    Buffers: shared hit=2
+              ->  Index Scan using bookings_no_overlap on bookings b  (cost=0.14..8.17 rows=1 width=56) (actual time=0.001..0.001 rows=0.50 loops=2)
+                    Index Cond: (space_id = s.id)
+                    Filter: ((status = 'CONFIRMED'::"BookingStatus") AND (starts_at >= now()) AND (starts_at <= (now() + '30 days'::interval)))
+                    Rows Removed by Filter: 0
+                    Index Searches: 2
+                    Buffers: shared hit=4
+        ->  Index Scan using users_pkey on users u  (cost=0.15..8.17 rows=1 width=36) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: (id = b.renter_id)
+              Index Searches: 1
+              Buffers: shared hit=2
+Planning:
+  Buffers: shared hit=6
+Planning Time: 0.072 ms
+Execution Time: 0.010 ms
+
+=== R25 run 3 ===
+Sort  (cost=24.56..24.56 rows=1 width=112) (actual time=0.005..0.005 rows=1.00 loops=1)
+  Sort Key: b.starts_at
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=8
+  ->  Nested Loop  (cost=0.43..24.55 rows=1 width=112) (actual time=0.004..0.004 rows=1.00 loops=1)
+        Buffers: shared hit=8
+        ->  Nested Loop  (cost=0.28..16.34 rows=1 width=84) (actual time=0.003..0.004 rows=1.00 loops=1)
+              Buffers: shared hit=6
+              ->  Index Scan using spaces_owner_id_idx on spaces s  (cost=0.14..8.16 rows=1 width=36) (actual time=0.001..0.001 rows=2.00 loops=1)
+                    Index Cond: (owner_id = 1)
+                    Index Searches: 1
+                    Buffers: shared hit=2
+              ->  Index Scan using bookings_no_overlap on bookings b  (cost=0.14..8.17 rows=1 width=56) (actual time=0.001..0.001 rows=0.50 loops=2)
+                    Index Cond: (space_id = s.id)
+                    Filter: ((status = 'CONFIRMED'::"BookingStatus") AND (starts_at >= now()) AND (starts_at <= (now() + '30 days'::interval)))
+                    Rows Removed by Filter: 0
+                    Index Searches: 2
+                    Buffers: shared hit=4
+        ->  Index Scan using users_pkey on users u  (cost=0.15..8.17 rows=1 width=36) (actual time=0.000..0.000 rows=1.00 loops=1)
+              Index Cond: (id = b.renter_id)
+              Index Searches: 1
+              Buffers: shared hit=2
+Planning:
+  Buffers: shared hit=6
+Planning Time: 0.053 ms
+Execution Time: 0.010 ms

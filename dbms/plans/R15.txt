@@ -1,0 +1,83 @@
+-- R15 | READ | Calendar: booked and blocked periods of a space for the next 30 days
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+
+-- Query:
+SELECT 'booking' AS kind, starts_at, ends_at
+FROM bookings
+WHERE space_id = 1 AND status IN ('PENDING', 'CONFIRMED')
+  AND ends_at > now() AND starts_at < now() + interval '30 days'
+UNION ALL
+SELECT 'blocked', starts_at, ends_at
+FROM blocked_slots
+WHERE space_id = 1
+  AND ends_at > now() AND starts_at < now() + interval '30 days'
+ORDER BY starts_at;
+
+=== R15 run 1 ===
+Sort  (cost=16.37..16.37 rows=2 width=48) (actual time=1.514..1.514 rows=1.00 loops=1)
+  Sort Key: bookings.starts_at
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=58 read=6 dirtied=1
+  ->  Append  (cost=0.14..16.36 rows=2 width=48) (actual time=1.510..1.511 rows=1.00 loops=1)
+        Buffers: shared hit=55 read=6 dirtied=1
+        ->  Index Scan using bookings_no_overlap on bookings  (cost=0.14..8.17 rows=1 width=48) (actual time=1.496..1.496 rows=0.00 loops=1)
+              Index Cond: (space_id = 1)
+              Filter: ((ends_at > now()) AND (starts_at < (now() + '30 days'::interval)))
+              Rows Removed by Filter: 1
+              Index Searches: 1
+              Buffers: shared hit=41 read=6
+        ->  Index Only Scan using blocked_slots_space_id_starts_at_ends_at_idx on blocked_slots  (cost=0.16..8.18 rows=1 width=48) (actual time=0.014..0.014 rows=1.00 loops=1)
+              Index Cond: ((space_id = 1) AND (starts_at < (now() + '30 days'::interval)) AND (ends_at > now()))
+              Heap Fetches: 2
+              Index Searches: 1
+              Buffers: shared hit=14 dirtied=1
+Planning:
+  Buffers: shared hit=9
+Planning Time: 0.052 ms
+Execution Time: 1.520 ms
+
+=== R15 run 2 ===
+Sort  (cost=16.37..16.37 rows=2 width=48) (actual time=0.494..0.494 rows=1.00 loops=1)
+  Sort Key: bookings.starts_at
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=64
+  ->  Append  (cost=0.14..16.36 rows=2 width=48) (actual time=0.491..0.492 rows=1.00 loops=1)
+        Buffers: shared hit=61
+        ->  Index Scan using bookings_no_overlap on bookings  (cost=0.14..8.17 rows=1 width=48) (actual time=0.480..0.480 rows=0.00 loops=1)
+              Index Cond: (space_id = 1)
+              Filter: ((ends_at > now()) AND (starts_at < (now() + '30 days'::interval)))
+              Rows Removed by Filter: 1
+              Index Searches: 1
+              Buffers: shared hit=47
+        ->  Index Only Scan using blocked_slots_space_id_starts_at_ends_at_idx on blocked_slots  (cost=0.16..8.18 rows=1 width=48) (actual time=0.011..0.011 rows=1.00 loops=1)
+              Index Cond: ((space_id = 1) AND (starts_at < (now() + '30 days'::interval)) AND (ends_at > now()))
+              Heap Fetches: 2
+              Index Searches: 1
+              Buffers: shared hit=14
+Planning:
+  Buffers: shared hit=9
+Planning Time: 0.053 ms
+Execution Time: 0.500 ms
+
+=== R15 run 3 ===
+Sort  (cost=16.37..16.37 rows=2 width=48) (actual time=0.475..0.475 rows=1.00 loops=1)
+  Sort Key: bookings.starts_at
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=64
+  ->  Append  (cost=0.14..16.36 rows=2 width=48) (actual time=0.473..0.473 rows=1.00 loops=1)
+        Buffers: shared hit=61
+        ->  Index Scan using bookings_no_overlap on bookings  (cost=0.14..8.17 rows=1 width=48) (actual time=0.461..0.461 rows=0.00 loops=1)
+              Index Cond: (space_id = 1)
+              Filter: ((ends_at > now()) AND (starts_at < (now() + '30 days'::interval)))
+              Rows Removed by Filter: 1
+              Index Searches: 1
+              Buffers: shared hit=47
+        ->  Index Only Scan using blocked_slots_space_id_starts_at_ends_at_idx on blocked_slots  (cost=0.16..8.18 rows=1 width=48) (actual time=0.012..0.012 rows=1.00 loops=1)
+              Index Cond: ((space_id = 1) AND (starts_at < (now() + '30 days'::interval)) AND (ends_at > now()))
+              Heap Fetches: 2
+              Index Searches: 1
+              Buffers: shared hit=14
+Planning:
+  Buffers: shared hit=9
+Planning Time: 0.051 ms
+Execution Time: 0.480 ms

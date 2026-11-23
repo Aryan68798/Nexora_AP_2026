@@ -1,0 +1,57 @@
+-- R2 | READ | Owner dashboard header: owner profile with the user's name
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+
+-- Query:
+SELECT u.full_name, u.email, op.id AS owner_profile_id, op.business_name,
+       op.verification_status, op.verified_at
+FROM owner_profiles op
+JOIN users u ON u.id = op.user_id
+WHERE op.user_id = 2;
+
+=== R2 run 1 ===
+Nested Loop  (cost=0.29..16.34 rows=1 width=112) (actual time=0.010..0.011 rows=1.00 loops=1)
+  Buffers: shared hit=1 read=3
+  ->  Index Scan using owner_profiles_user_id_key on owner_profiles op  (cost=0.15..8.17 rows=1 width=52) (actual time=0.006..0.006 rows=1.00 loops=1)
+        Index Cond: (user_id = 2)
+        Index Searches: 1
+        Buffers: shared read=2
+  ->  Index Scan using users_pkey on users u  (cost=0.15..8.17 rows=1 width=68) (actual time=0.003..0.003 rows=1.00 loops=1)
+        Index Cond: (id = 2)
+        Index Searches: 1
+        Buffers: shared hit=1 read=1
+Planning:
+  Buffers: shared hit=84 read=13
+Planning Time: 0.292 ms
+Execution Time: 0.018 ms
+
+=== R2 run 2 ===
+Nested Loop  (cost=0.29..16.34 rows=1 width=112) (actual time=0.005..0.006 rows=1.00 loops=1)
+  Buffers: shared hit=4
+  ->  Index Scan using owner_profiles_user_id_key on owner_profiles op  (cost=0.15..8.17 rows=1 width=52) (actual time=0.003..0.003 rows=1.00 loops=1)
+        Index Cond: (user_id = 2)
+        Index Searches: 1
+        Buffers: shared hit=2
+  ->  Index Scan using users_pkey on users u  (cost=0.15..8.17 rows=1 width=68) (actual time=0.002..0.002 rows=1.00 loops=1)
+        Index Cond: (id = 2)
+        Index Searches: 1
+        Buffers: shared hit=2
+Planning:
+  Buffers: shared hit=97
+Planning Time: 0.165 ms
+Execution Time: 0.014 ms
+
+=== R2 run 3 ===
+Nested Loop  (cost=0.29..16.34 rows=1 width=112) (actual time=0.004..0.005 rows=1.00 loops=1)
+  Buffers: shared hit=4
+  ->  Index Scan using owner_profiles_user_id_key on owner_profiles op  (cost=0.15..8.17 rows=1 width=52) (actual time=0.002..0.002 rows=1.00 loops=1)
+        Index Cond: (user_id = 2)
+        Index Searches: 1
+        Buffers: shared hit=2
+  ->  Index Scan using users_pkey on users u  (cost=0.15..8.17 rows=1 width=68) (actual time=0.002..0.002 rows=1.00 loops=1)
+        Index Cond: (id = 2)
+        Index Searches: 1
+        Buffers: shared hit=2
+Planning:
+  Buffers: shared hit=97
+Planning Time: 0.159 ms
+Execution Time: 0.010 ms

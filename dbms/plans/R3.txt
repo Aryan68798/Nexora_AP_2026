@@ -1,0 +1,90 @@
+-- R3 | READ | Home page: all cities that have at least one active listing
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+
+-- Query:
+SELECT c.id, c.name, c.state, COUNT(s.id) AS active_spaces
+FROM cities c
+JOIN spaces s ON s.city_id = c.id AND s.status = 'ACTIVE'
+GROUP BY c.id, c.name, c.state
+ORDER BY c.name;
+
+=== R3 run 1 ===
+Sort  (cost=16.40..16.40 rows=1 width=76) (actual time=0.046..0.046 rows=3.00 loops=1)
+  Sort Key: c.name
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=15 read=4 dirtied=2
+  ->  GroupAggregate  (cost=16.37..16.39 rows=1 width=76) (actual time=0.030..0.031 rows=3.00 loops=1)
+        Group Key: c.id
+        Buffers: shared hit=12 read=4 dirtied=2
+        ->  Sort  (cost=16.37..16.37 rows=1 width=72) (actual time=0.026..0.026 rows=5.00 loops=1)
+              Sort Key: c.id
+              Sort Method: quicksort  Memory: 25kB
+              Buffers: shared hit=12 read=4 dirtied=2
+              ->  Nested Loop  (cost=0.29..16.36 rows=1 width=72) (actual time=0.019..0.022 rows=5.00 loops=1)
+                    Buffers: shared hit=9 read=4 dirtied=2
+                    ->  Index Scan using spaces_status_idx on spaces s  (cost=0.14..8.16 rows=1 width=8) (actual time=0.011..0.012 rows=5.00 loops=1)
+                          Index Cond: (status = 'ACTIVE'::"SpaceStatus")
+                          Index Searches: 1
+                          Buffers: shared hit=1 read=2 dirtied=2
+                    ->  Index Scan using cities_pkey on cities c  (cost=0.15..8.17 rows=1 width=68) (actual time=0.002..0.002 rows=1.00 loops=5)
+                          Index Cond: (id = s.city_id)
+                          Index Searches: 5
+                          Buffers: shared hit=8 read=2
+Planning:
+  Buffers: shared hit=237 read=18
+Planning Time: 0.433 ms
+Execution Time: 0.064 ms
+
+=== R3 run 2 ===
+Sort  (cost=16.40..16.40 rows=1 width=76) (actual time=0.040..0.040 rows=3.00 loops=1)
+  Sort Key: c.name
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=19
+  ->  GroupAggregate  (cost=16.37..16.39 rows=1 width=76) (actual time=0.024..0.025 rows=3.00 loops=1)
+        Group Key: c.id
+        Buffers: shared hit=16
+        ->  Sort  (cost=16.37..16.37 rows=1 width=72) (actual time=0.020..0.020 rows=5.00 loops=1)
+              Sort Key: c.id
+              Sort Method: quicksort  Memory: 25kB
+              Buffers: shared hit=16
+              ->  Nested Loop  (cost=0.29..16.36 rows=1 width=72) (actual time=0.012..0.015 rows=5.00 loops=1)
+                    Buffers: shared hit=13
+                    ->  Index Scan using spaces_status_idx on spaces s  (cost=0.14..8.16 rows=1 width=8) (actual time=0.007..0.008 rows=5.00 loops=1)
+                          Index Cond: (status = 'ACTIVE'::"SpaceStatus")
+                          Index Searches: 1
+                          Buffers: shared hit=3
+                    ->  Index Scan using cities_pkey on cities c  (cost=0.15..8.17 rows=1 width=68) (actual time=0.001..0.001 rows=1.00 loops=5)
+                          Index Cond: (id = s.city_id)
+                          Index Searches: 5
+                          Buffers: shared hit=10
+Planning:
+  Buffers: shared hit=255
+Planning Time: 0.341 ms
+Execution Time: 0.057 ms
+
+=== R3 run 3 ===
+Sort  (cost=16.40..16.40 rows=1 width=76) (actual time=0.036..0.036 rows=3.00 loops=1)
+  Sort Key: c.name
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=19
+  ->  GroupAggregate  (cost=16.37..16.39 rows=1 width=76) (actual time=0.021..0.022 rows=3.00 loops=1)
+        Group Key: c.id
+        Buffers: shared hit=16
+        ->  Sort  (cost=16.37..16.37 rows=1 width=72) (actual time=0.018..0.018 rows=5.00 loops=1)
+              Sort Key: c.id
+              Sort Method: quicksort  Memory: 25kB
+              Buffers: shared hit=16
+              ->  Nested Loop  (cost=0.29..16.36 rows=1 width=72) (actual time=0.011..0.014 rows=5.00 loops=1)
+                    Buffers: shared hit=13
+                    ->  Index Scan using spaces_status_idx on spaces s  (cost=0.14..8.16 rows=1 width=8) (actual time=0.007..0.008 rows=5.00 loops=1)
+                          Index Cond: (status = 'ACTIVE'::"SpaceStatus")
+                          Index Searches: 1
+                          Buffers: shared hit=3
+                    ->  Index Scan using cities_pkey on cities c  (cost=0.15..8.17 rows=1 width=68) (actual time=0.001..0.001 rows=1.00 loops=5)
+                          Index Cond: (id = s.city_id)
+                          Index Searches: 5
+                          Buffers: shared hit=10
+Planning:
+  Buffers: shared hit=255
+Planning Time: 0.356 ms
+Execution Time: 0.056 ms

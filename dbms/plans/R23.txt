@@ -1,0 +1,106 @@
+-- R23 | READ | Owner's listings with booking count and rating
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+
+-- Query:
+SELECT s.id, s.title, s.status,
+       COUNT(DISTINCT b.id) AS bookings,
+       ROUND(AVG(rv.rating), 2) AS avg_rating
+FROM spaces s
+LEFT JOIN bookings b ON b.space_id = s.id
+LEFT JOIN reviews rv ON rv.booking_id = b.id
+WHERE s.owner_id = 1
+GROUP BY s.id, s.title, s.status
+ORDER BY s.title;
+
+=== R23 run 1 ===
+Sort  (cost=16.72..16.73 rows=1 width=80) (actual time=0.015..0.015 rows=2.00 loops=1)
+  Sort Key: s.title
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=9 read=1
+  ->  GroupAggregate  (cost=16.69..16.71 rows=1 width=80) (actual time=0.011..0.012 rows=2.00 loops=1)
+        Group Key: s.id
+        Buffers: shared hit=9 read=1
+        ->  Sort  (cost=16.69..16.69 rows=1 width=46) (actual time=0.009..0.009 rows=3.00 loops=1)
+              Sort Key: s.id, b.id
+              Sort Method: quicksort  Memory: 25kB
+              Buffers: shared hit=9 read=1
+              ->  Nested Loop Left Join  (cost=0.44..16.68 rows=1 width=46) (actual time=0.006..0.008 rows=3.00 loops=1)
+                    Buffers: shared hit=9 read=1
+                    ->  Nested Loop Left Join  (cost=0.29..16.34 rows=1 width=44) (actual time=0.005..0.007 rows=3.00 loops=1)
+                          Buffers: shared hit=5 read=1
+                          ->  Index Scan using spaces_owner_id_idx on spaces s  (cost=0.14..8.16 rows=1 width=40) (actual time=0.004..0.004 rows=2.00 loops=1)
+                                Index Cond: (owner_id = 1)
+                                Index Searches: 1
+                                Buffers: shared hit=1 read=1
+                          ->  Index Scan using bookings_space_id_starts_at_ends_at_idx on bookings b  (cost=0.15..8.17 rows=1 width=8) (actual time=0.000..0.001 rows=1.50 loops=2)
+                                Index Cond: (space_id = s.id)
+                                Index Searches: 2
+                                Buffers: shared hit=4
+                    ->  Index Scan using reviews_booking_id_key on reviews rv  (cost=0.15..0.34 rows=1 width=6) (actual time=0.000..0.000 rows=0.33 loops=3)
+                          Index Cond: (booking_id = b.id)
+                          Index Searches: 3
+                          Buffers: shared hit=4
+Planning Time: 0.054 ms
+Execution Time: 0.023 ms
+
+=== R23 run 2 ===
+Sort  (cost=16.72..16.73 rows=1 width=80) (actual time=0.011..0.012 rows=2.00 loops=1)
+  Sort Key: s.title
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=10
+  ->  GroupAggregate  (cost=16.69..16.71 rows=1 width=80) (actual time=0.008..0.009 rows=2.00 loops=1)
+        Group Key: s.id
+        Buffers: shared hit=10
+        ->  Sort  (cost=16.69..16.69 rows=1 width=46) (actual time=0.006..0.007 rows=3.00 loops=1)
+              Sort Key: s.id, b.id
+              Sort Method: quicksort  Memory: 25kB
+              Buffers: shared hit=10
+              ->  Nested Loop Left Join  (cost=0.44..16.68 rows=1 width=46) (actual time=0.004..0.006 rows=3.00 loops=1)
+                    Buffers: shared hit=10
+                    ->  Nested Loop Left Join  (cost=0.29..16.34 rows=1 width=44) (actual time=0.003..0.004 rows=3.00 loops=1)
+                          Buffers: shared hit=6
+                          ->  Index Scan using spaces_owner_id_idx on spaces s  (cost=0.14..8.16 rows=1 width=40) (actual time=0.002..0.002 rows=2.00 loops=1)
+                                Index Cond: (owner_id = 1)
+                                Index Searches: 1
+                                Buffers: shared hit=2
+                          ->  Index Scan using bookings_space_id_starts_at_ends_at_idx on bookings b  (cost=0.15..8.17 rows=1 width=8) (actual time=0.000..0.000 rows=1.50 loops=2)
+                                Index Cond: (space_id = s.id)
+                                Index Searches: 2
+                                Buffers: shared hit=4
+                    ->  Index Scan using reviews_booking_id_key on reviews rv  (cost=0.15..0.34 rows=1 width=6) (actual time=0.000..0.000 rows=0.33 loops=3)
+                          Index Cond: (booking_id = b.id)
+                          Index Searches: 3
+                          Buffers: shared hit=4
+Planning Time: 0.064 ms
+Execution Time: 0.019 ms
+
+=== R23 run 3 ===
+Sort  (cost=16.72..16.73 rows=1 width=80) (actual time=0.012..0.012 rows=2.00 loops=1)
+  Sort Key: s.title
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=10
+  ->  GroupAggregate  (cost=16.69..16.71 rows=1 width=80) (actual time=0.009..0.010 rows=2.00 loops=1)
+        Group Key: s.id
+        Buffers: shared hit=10
+        ->  Sort  (cost=16.69..16.69 rows=1 width=46) (actual time=0.006..0.007 rows=3.00 loops=1)
+              Sort Key: s.id, b.id
+              Sort Method: quicksort  Memory: 25kB
+              Buffers: shared hit=10
+              ->  Nested Loop Left Join  (cost=0.44..16.68 rows=1 width=46) (actual time=0.004..0.006 rows=3.00 loops=1)
+                    Buffers: shared hit=10
+                    ->  Nested Loop Left Join  (cost=0.29..16.34 rows=1 width=44) (actual time=0.003..0.004 rows=3.00 loops=1)
+                          Buffers: shared hit=6
+                          ->  Index Scan using spaces_owner_id_idx on spaces s  (cost=0.14..8.16 rows=1 width=40) (actual time=0.002..0.002 rows=2.00 loops=1)
+                                Index Cond: (owner_id = 1)
+                                Index Searches: 1
+                                Buffers: shared hit=2
+                          ->  Index Scan using bookings_space_id_starts_at_ends_at_idx on bookings b  (cost=0.15..8.17 rows=1 width=8) (actual time=0.000..0.001 rows=1.50 loops=2)
+                                Index Cond: (space_id = s.id)
+                                Index Searches: 2
+                                Buffers: shared hit=4
+                    ->  Index Scan using reviews_booking_id_key on reviews rv  (cost=0.15..0.34 rows=1 width=6) (actual time=0.000..0.000 rows=0.33 loops=3)
+                          Index Cond: (booking_id = b.id)
+                          Index Searches: 3
+                          Buffers: shared hit=4
+Planning Time: 0.060 ms
+Execution Time: 0.020 ms

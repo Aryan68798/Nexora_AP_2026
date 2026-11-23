@@ -1,0 +1,108 @@
+-- R22 | READ | Conversation thread: messages in order with sender role
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+
+-- Query:
+SELECT sender.full_name AS sender,
+       CASE WHEN m.sender_id = cv.renter_id THEN 'renter' ELSE 'owner' END AS sender_role,
+       m.body, m.created_at, m.read_at IS NOT NULL AS is_read
+FROM conversations cv
+JOIN messages m   ON m.conversation_id = cv.id
+JOIN users sender ON sender.id = m.sender_id
+WHERE cv.id = 1
+ORDER BY m.created_at;
+
+=== R22 run 1 ===
+Sort  (cost=36.29..36.30 rows=5 width=105) (actual time=0.010..0.010 rows=2.00 loops=1)
+  Sort Key: m.created_at
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=4 read=1
+  ->  Nested Loop  (cost=12.88..36.23 rows=5 width=105) (actual time=0.008..0.009 rows=2.00 loops=1)
+        Buffers: shared hit=4 read=1
+        ->  Index Scan using conversations_pkey on conversations cv  (cost=0.15..8.17 rows=1 width=8) (actual time=0.003..0.003 rows=1.00 loops=1)
+              Index Cond: (id = 1)
+              Index Searches: 1
+              Buffers: shared hit=1 read=1
+        ->  Hash Join  (cost=12.72..28.00 rows=5 width=88) (actual time=0.005..0.006 rows=2.00 loops=1)
+              Hash Cond: (sender.id = m.sender_id)
+              Buffers: shared hit=3
+              ->  Seq Scan on users sender  (cost=0.00..13.80 rows=380 width=36) (actual time=0.001..0.001 rows=8.00 loops=1)
+                    Buffers: shared hit=1
+              ->  Hash  (cost=12.66..12.66 rows=5 width=56) (actual time=0.002..0.002 rows=2.00 loops=1)
+                    Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                    Buffers: shared hit=2
+                    ->  Bitmap Heap Scan on messages m  (cost=4.19..12.66 rows=5 width=56) (actual time=0.001..0.002 rows=2.00 loops=1)
+                          Recheck Cond: (conversation_id = 1)
+                          Heap Blocks: exact=1
+                          Buffers: shared hit=2
+                          ->  Bitmap Index Scan on messages_conversation_id_created_at_idx  (cost=0.00..4.19 rows=5 width=0) (actual time=0.000..0.000 rows=2.00 loops=1)
+                                Index Cond: (conversation_id = 1)
+                                Index Searches: 1
+                                Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=7
+Planning Time: 0.035 ms
+Execution Time: 0.017 ms
+
+=== R22 run 2 ===
+Sort  (cost=36.29..36.30 rows=5 width=105) (actual time=0.007..0.007 rows=2.00 loops=1)
+  Sort Key: m.created_at
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=5
+  ->  Nested Loop  (cost=12.88..36.23 rows=5 width=105) (actual time=0.006..0.007 rows=2.00 loops=1)
+        Buffers: shared hit=5
+        ->  Index Scan using conversations_pkey on conversations cv  (cost=0.15..8.17 rows=1 width=8) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: (id = 1)
+              Index Searches: 1
+              Buffers: shared hit=2
+        ->  Hash Join  (cost=12.72..28.00 rows=5 width=88) (actual time=0.004..0.005 rows=2.00 loops=1)
+              Hash Cond: (sender.id = m.sender_id)
+              Buffers: shared hit=3
+              ->  Seq Scan on users sender  (cost=0.00..13.80 rows=380 width=36) (actual time=0.001..0.001 rows=8.00 loops=1)
+                    Buffers: shared hit=1
+              ->  Hash  (cost=12.66..12.66 rows=5 width=56) (actual time=0.002..0.002 rows=2.00 loops=1)
+                    Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                    Buffers: shared hit=2
+                    ->  Bitmap Heap Scan on messages m  (cost=4.19..12.66 rows=5 width=56) (actual time=0.001..0.001 rows=2.00 loops=1)
+                          Recheck Cond: (conversation_id = 1)
+                          Heap Blocks: exact=1
+                          Buffers: shared hit=2
+                          ->  Bitmap Index Scan on messages_conversation_id_created_at_idx  (cost=0.00..4.19 rows=5 width=0) (actual time=0.000..0.000 rows=2.00 loops=1)
+                                Index Cond: (conversation_id = 1)
+                                Index Searches: 1
+                                Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=7
+Planning Time: 0.034 ms
+Execution Time: 0.012 ms
+
+=== R22 run 3 ===
+Sort  (cost=36.29..36.30 rows=5 width=105) (actual time=0.007..0.008 rows=2.00 loops=1)
+  Sort Key: m.created_at
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=5
+  ->  Nested Loop  (cost=12.88..36.23 rows=5 width=105) (actual time=0.006..0.007 rows=2.00 loops=1)
+        Buffers: shared hit=5
+        ->  Index Scan using conversations_pkey on conversations cv  (cost=0.15..8.17 rows=1 width=8) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: (id = 1)
+              Index Searches: 1
+              Buffers: shared hit=2
+        ->  Hash Join  (cost=12.72..28.00 rows=5 width=88) (actual time=0.004..0.005 rows=2.00 loops=1)
+              Hash Cond: (sender.id = m.sender_id)
+              Buffers: shared hit=3
+              ->  Seq Scan on users sender  (cost=0.00..13.80 rows=380 width=36) (actual time=0.001..0.001 rows=8.00 loops=1)
+                    Buffers: shared hit=1
+              ->  Hash  (cost=12.66..12.66 rows=5 width=56) (actual time=0.002..0.002 rows=2.00 loops=1)
+                    Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                    Buffers: shared hit=2
+                    ->  Bitmap Heap Scan on messages m  (cost=4.19..12.66 rows=5 width=56) (actual time=0.001..0.001 rows=2.00 loops=1)
+                          Recheck Cond: (conversation_id = 1)
+                          Heap Blocks: exact=1
+                          Buffers: shared hit=2
+                          ->  Bitmap Index Scan on messages_conversation_id_created_at_idx  (cost=0.00..4.19 rows=5 width=0) (actual time=0.000..0.000 rows=2.00 loops=1)
+                                Index Cond: (conversation_id = 1)
+                                Index Searches: 1
+                                Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=7
+Planning Time: 0.031 ms
+Execution Time: 0.013 ms

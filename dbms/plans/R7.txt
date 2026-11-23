@@ -1,0 +1,112 @@
+-- R7 | READ | Amenity filter list: amenities and how many active spaces offer each
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+
+-- Query:
+SELECT a.id, a.name, a.icon, COUNT(s.id) AS spaces_offering
+FROM amenities a
+LEFT JOIN space_amenities sa ON sa.amenity_id = a.id
+LEFT JOIN spaces s           ON s.id = sa.space_id AND s.status = 'ACTIVE'
+GROUP BY a.id, a.name, a.icon
+ORDER BY spaces_offering DESC, a.name;
+
+=== R7 run 1 ===
+Sort  (cost=128.57..130.52 rows=780 width=76) (actual time=0.033..0.034 rows=12.00 loops=1)
+  Sort Key: (count(s.id)) DESC, a.name
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=7 dirtied=1
+  ->  HashAggregate  (cost=83.30..91.10 rows=780 width=76) (actual time=0.025..0.028 rows=12.00 loops=1)
+        Group Key: a.name
+        Batches: 1  Memory Usage: 49kB
+        Buffers: shared hit=4 dirtied=1
+        ->  Hash Left Join  (cost=35.73..74.05 rows=1850 width=72) (actual time=0.012..0.020 rows=27.00 loops=1)
+              Hash Cond: (sa.space_id = s.id)
+              Buffers: shared hit=4 dirtied=1
+              ->  Hash Right Join  (cost=27.55..60.93 rows=1850 width=72) (actual time=0.007..0.012 rows=27.00 loops=1)
+                    Hash Cond: (sa.amenity_id = a.id)
+                    Buffers: shared hit=2 dirtied=1
+                    ->  Seq Scan on space_amenities sa  (cost=0.00..28.50 rows=1850 width=8) (actual time=0.001..0.002 rows=27.00 loops=1)
+                          Buffers: shared hit=1 dirtied=1
+                    ->  Hash  (cost=17.80..17.80 rows=780 width=68) (actual time=0.004..0.004 rows=12.00 loops=1)
+                          Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                          Buffers: shared hit=1
+                          ->  Seq Scan on amenities a  (cost=0.00..17.80 rows=780 width=68) (actual time=0.002..0.002 rows=12.00 loops=1)
+                                Buffers: shared hit=1
+              ->  Hash  (cost=8.16..8.16 rows=1 width=4) (actual time=0.003..0.003 rows=5.00 loops=1)
+                    Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                    Buffers: shared hit=2
+                    ->  Index Scan using spaces_status_idx on spaces s  (cost=0.14..8.16 rows=1 width=4) (actual time=0.001..0.001 rows=5.00 loops=1)
+                          Index Cond: (status = 'ACTIVE'::"SpaceStatus")
+                          Index Searches: 1
+                          Buffers: shared hit=2
+Planning:
+  Buffers: shared hit=12
+Planning Time: 0.055 ms
+Execution Time: 0.046 ms
+
+=== R7 run 2 ===
+Sort  (cost=128.57..130.52 rows=780 width=76) (actual time=0.035..0.036 rows=12.00 loops=1)
+  Sort Key: (count(s.id)) DESC, a.name
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=7
+  ->  HashAggregate  (cost=83.30..91.10 rows=780 width=76) (actual time=0.027..0.030 rows=12.00 loops=1)
+        Group Key: a.name
+        Batches: 1  Memory Usage: 49kB
+        Buffers: shared hit=4
+        ->  Hash Left Join  (cost=35.73..74.05 rows=1850 width=72) (actual time=0.015..0.022 rows=27.00 loops=1)
+              Hash Cond: (sa.space_id = s.id)
+              Buffers: shared hit=4
+              ->  Hash Right Join  (cost=27.55..60.93 rows=1850 width=72) (actual time=0.009..0.014 rows=27.00 loops=1)
+                    Hash Cond: (sa.amenity_id = a.id)
+                    Buffers: shared hit=2
+                    ->  Seq Scan on space_amenities sa  (cost=0.00..28.50 rows=1850 width=8) (actual time=0.001..0.002 rows=27.00 loops=1)
+                          Buffers: shared hit=1
+                    ->  Hash  (cost=17.80..17.80 rows=780 width=68) (actual time=0.005..0.005 rows=12.00 loops=1)
+                          Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                          Buffers: shared hit=1
+                          ->  Seq Scan on amenities a  (cost=0.00..17.80 rows=780 width=68) (actual time=0.002..0.003 rows=12.00 loops=1)
+                                Buffers: shared hit=1
+              ->  Hash  (cost=8.16..8.16 rows=1 width=4) (actual time=0.003..0.003 rows=5.00 loops=1)
+                    Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                    Buffers: shared hit=2
+                    ->  Index Scan using spaces_status_idx on spaces s  (cost=0.14..8.16 rows=1 width=4) (actual time=0.001..0.001 rows=5.00 loops=1)
+                          Index Cond: (status = 'ACTIVE'::"SpaceStatus")
+                          Index Searches: 1
+                          Buffers: shared hit=2
+Planning:
+  Buffers: shared hit=12
+Planning Time: 0.057 ms
+Execution Time: 0.050 ms
+
+=== R7 run 3 ===
+Sort  (cost=128.57..130.52 rows=780 width=76) (actual time=0.031..0.032 rows=12.00 loops=1)
+  Sort Key: (count(s.id)) DESC, a.name
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=7
+  ->  HashAggregate  (cost=83.30..91.10 rows=780 width=76) (actual time=0.022..0.025 rows=12.00 loops=1)
+        Group Key: a.name
+        Batches: 1  Memory Usage: 49kB
+        Buffers: shared hit=4
+        ->  Hash Left Join  (cost=35.73..74.05 rows=1850 width=72) (actual time=0.011..0.018 rows=27.00 loops=1)
+              Hash Cond: (sa.space_id = s.id)
+              Buffers: shared hit=4
+              ->  Hash Right Join  (cost=27.55..60.93 rows=1850 width=72) (actual time=0.006..0.011 rows=27.00 loops=1)
+                    Hash Cond: (sa.amenity_id = a.id)
+                    Buffers: shared hit=2
+                    ->  Seq Scan on space_amenities sa  (cost=0.00..28.50 rows=1850 width=8) (actual time=0.001..0.001 rows=27.00 loops=1)
+                          Buffers: shared hit=1
+                    ->  Hash  (cost=17.80..17.80 rows=780 width=68) (actual time=0.003..0.004 rows=12.00 loops=1)
+                          Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                          Buffers: shared hit=1
+                          ->  Seq Scan on amenities a  (cost=0.00..17.80 rows=780 width=68) (actual time=0.001..0.002 rows=12.00 loops=1)
+                                Buffers: shared hit=1
+              ->  Hash  (cost=8.16..8.16 rows=1 width=4) (actual time=0.002..0.002 rows=5.00 loops=1)
+                    Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                    Buffers: shared hit=2
+                    ->  Index Scan using spaces_status_idx on spaces s  (cost=0.14..8.16 rows=1 width=4) (actual time=0.001..0.001 rows=5.00 loops=1)
+                          Index Cond: (status = 'ACTIVE'::"SpaceStatus")
+                          Index Searches: 1
+                          Buffers: shared hit=2
+Planning:
+  Buffers: shared hit=12
+Planning Time: 0.058 ms
+Execution Time: 0.046 ms

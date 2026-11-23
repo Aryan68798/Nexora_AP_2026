@@ -1,0 +1,163 @@
+-- R16 | READ | Booking detail: one booking with space, renter, total and payments so far
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+
+-- Query:
+SELECT b.booking_code, b.status, s.title AS space, u.full_name AS renter,
+       b.starts_at, b.ends_at, b.guests, b.pricing_unit, b.unit_price, b.units,
+       b.unit_price * b.units + b.cleaning_fee + b.service_fee
+         + b.tax_amount - b.discount_amount AS total_amount,
+       COALESCE(SUM(p.amount) FILTER (WHERE p.kind = 'CHARGE' AND p.status = 'SUCCEEDED'), 0) AS amount_paid,
+       COALESCE(SUM(p.amount) FILTER (WHERE p.kind = 'REFUND' AND p.status = 'SUCCEEDED'), 0) AS amount_refunded
+FROM bookings b
+JOIN spaces s ON s.id = b.space_id
+JOIN users u  ON u.id = b.renter_id
+LEFT JOIN payments p ON p.booking_id = b.id
+WHERE b.booking_code = (SELECT MIN(booking_code) FROM bookings)
+GROUP BY b.id, s.title, u.full_name;
+
+=== R16 run 1 ===
+GroupAggregate  (cost=36.27..36.38 rows=2 width=244) (actual time=0.123..0.124 rows=1.00 loops=1)
+  Group Key: b.id, s.title, u.full_name
+  Buffers: shared hit=7 read=3
+  InitPlan 2
+    ->  Result  (cost=0.33..0.34 rows=1 width=32) (actual time=0.008..0.008 rows=1.00 loops=1)
+          Buffers: shared hit=1 read=1
+          InitPlan 1
+            ->  Limit  (cost=0.15..0.33 rows=1 width=32) (actual time=0.007..0.007 rows=1.00 loops=1)
+                  Buffers: shared hit=1 read=1
+                  ->  Index Only Scan using bookings_booking_code_key on bookings  (cost=0.15..52.35 rows=280 width=32) (actual time=0.007..0.007 rows=1.00 loops=1)
+                        Heap Fetches: 1
+                        Index Searches: 1
+                        Buffers: shared hit=1 read=1
+  ->  Sort  (cost=35.93..35.93 rows=2 width=236) (actual time=0.118..0.119 rows=1.00 loops=1)
+        Sort Key: b.id, s.title, u.full_name
+        Sort Method: quicksort  Memory: 25kB
+        Buffers: shared hit=7 read=3
+        ->  Nested Loop Left Join  (cost=4.61..35.92 rows=2 width=236) (actual time=0.116..0.117 rows=1.00 loops=1)
+              Buffers: shared hit=7 read=3
+              ->  Nested Loop  (cost=0.44..24.61 rows=1 width=212) (actual time=0.013..0.013 rows=1.00 loops=1)
+                    Buffers: shared hit=7 read=1
+                    ->  Nested Loop  (cost=0.29..16.40 rows=1 width=184) (actual time=0.012..0.012 rows=1.00 loops=1)
+                          Buffers: shared hit=5 read=1
+                          ->  Index Scan using bookings_booking_code_key on bookings b  (cost=0.15..8.17 rows=1 width=156) (actual time=0.010..0.010 rows=1.00 loops=1)
+                                Index Cond: (booking_code = (InitPlan 2).col1)
+                                Index Searches: 1
+                                Buffers: shared hit=3 read=1
+                          ->  Index Scan using spaces_pkey on spaces s  (cost=0.14..8.16 rows=1 width=36) (actual time=0.001..0.001 rows=1.00 loops=1)
+                                Index Cond: (id = b.space_id)
+                                Index Searches: 1
+                                Buffers: shared hit=2
+                    ->  Index Scan using users_pkey on users u  (cost=0.15..8.17 rows=1 width=36) (actual time=0.001..0.001 rows=1.00 loops=1)
+                          Index Cond: (id = b.renter_id)
+                          Index Searches: 1
+                          Buffers: shared hit=2
+              ->  Bitmap Heap Scan on payments p  (cost=4.17..11.28 rows=3 width=28) (actual time=0.102..0.103 rows=1.00 loops=1)
+                    Recheck Cond: (booking_id = b.id)
+                    Heap Blocks: exact=1
+                    Buffers: shared read=2
+                    ->  Bitmap Index Scan on payments_booking_id_idx  (cost=0.00..4.17 rows=3 width=0) (actual time=0.003..0.003 rows=1.00 loops=1)
+                          Index Cond: (booking_id = b.id)
+                          Index Searches: 1
+                          Buffers: shared read=1
+Planning:
+  Buffers: shared hit=82 read=9
+Planning Time: 0.353 ms
+Execution Time: 0.141 ms
+
+=== R16 run 2 ===
+GroupAggregate  (cost=36.27..36.38 rows=2 width=244) (actual time=0.022..0.022 rows=1.00 loops=1)
+  Group Key: b.id, s.title, u.full_name
+  Buffers: shared hit=10
+  InitPlan 2
+    ->  Result  (cost=0.33..0.34 rows=1 width=32) (actual time=0.006..0.007 rows=1.00 loops=1)
+          Buffers: shared hit=2
+          InitPlan 1
+            ->  Limit  (cost=0.15..0.33 rows=1 width=32) (actual time=0.006..0.006 rows=1.00 loops=1)
+                  Buffers: shared hit=2
+                  ->  Index Only Scan using bookings_booking_code_key on bookings  (cost=0.15..52.35 rows=280 width=32) (actual time=0.005..0.005 rows=1.00 loops=1)
+                        Heap Fetches: 1
+                        Index Searches: 1
+                        Buffers: shared hit=2
+  ->  Sort  (cost=35.93..35.93 rows=2 width=236) (actual time=0.018..0.018 rows=1.00 loops=1)
+        Sort Key: b.id, s.title, u.full_name
+        Sort Method: quicksort  Memory: 25kB
+        Buffers: shared hit=10
+        ->  Nested Loop Left Join  (cost=4.61..35.92 rows=2 width=236) (actual time=0.016..0.017 rows=1.00 loops=1)
+              Buffers: shared hit=10
+              ->  Nested Loop  (cost=0.44..24.61 rows=1 width=212) (actual time=0.011..0.012 rows=1.00 loops=1)
+                    Buffers: shared hit=8
+                    ->  Nested Loop  (cost=0.29..16.40 rows=1 width=184) (actual time=0.010..0.010 rows=1.00 loops=1)
+                          Buffers: shared hit=6
+                          ->  Index Scan using bookings_booking_code_key on bookings b  (cost=0.15..8.17 rows=1 width=156) (actual time=0.008..0.009 rows=1.00 loops=1)
+                                Index Cond: (booking_code = (InitPlan 2).col1)
+                                Index Searches: 1
+                                Buffers: shared hit=4
+                          ->  Index Scan using spaces_pkey on spaces s  (cost=0.14..8.16 rows=1 width=36) (actual time=0.001..0.001 rows=1.00 loops=1)
+                                Index Cond: (id = b.space_id)
+                                Index Searches: 1
+                                Buffers: shared hit=2
+                    ->  Index Scan using users_pkey on users u  (cost=0.15..8.17 rows=1 width=36) (actual time=0.001..0.001 rows=1.00 loops=1)
+                          Index Cond: (id = b.renter_id)
+                          Index Searches: 1
+                          Buffers: shared hit=2
+              ->  Bitmap Heap Scan on payments p  (cost=4.17..11.28 rows=3 width=28) (actual time=0.004..0.004 rows=1.00 loops=1)
+                    Recheck Cond: (booking_id = b.id)
+                    Heap Blocks: exact=1
+                    Buffers: shared hit=2
+                    ->  Bitmap Index Scan on payments_booking_id_idx  (cost=0.00..4.17 rows=3 width=0) (actual time=0.001..0.001 rows=1.00 loops=1)
+                          Index Cond: (booking_id = b.id)
+                          Index Searches: 1
+                          Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=91
+Planning Time: 0.292 ms
+Execution Time: 0.041 ms
+
+=== R16 run 3 ===
+GroupAggregate  (cost=36.27..36.38 rows=2 width=244) (actual time=0.021..0.021 rows=1.00 loops=1)
+  Group Key: b.id, s.title, u.full_name
+  Buffers: shared hit=10
+  InitPlan 2
+    ->  Result  (cost=0.33..0.34 rows=1 width=32) (actual time=0.005..0.005 rows=1.00 loops=1)
+          Buffers: shared hit=2
+          InitPlan 1
+            ->  Limit  (cost=0.15..0.33 rows=1 width=32) (actual time=0.005..0.005 rows=1.00 loops=1)
+                  Buffers: shared hit=2
+                  ->  Index Only Scan using bookings_booking_code_key on bookings  (cost=0.15..52.35 rows=280 width=32) (actual time=0.004..0.004 rows=1.00 loops=1)
+                        Heap Fetches: 1
+                        Index Searches: 1
+                        Buffers: shared hit=2
+  ->  Sort  (cost=35.93..35.93 rows=2 width=236) (actual time=0.016..0.016 rows=1.00 loops=1)
+        Sort Key: b.id, s.title, u.full_name
+        Sort Method: quicksort  Memory: 25kB
+        Buffers: shared hit=10
+        ->  Nested Loop Left Join  (cost=4.61..35.92 rows=2 width=236) (actual time=0.014..0.015 rows=1.00 loops=1)
+              Buffers: shared hit=10
+              ->  Nested Loop  (cost=0.44..24.61 rows=1 width=212) (actual time=0.009..0.009 rows=1.00 loops=1)
+                    Buffers: shared hit=8
+                    ->  Nested Loop  (cost=0.29..16.40 rows=1 width=184) (actual time=0.008..0.008 rows=1.00 loops=1)
+                          Buffers: shared hit=6
+                          ->  Index Scan using bookings_booking_code_key on bookings b  (cost=0.15..8.17 rows=1 width=156) (actual time=0.006..0.007 rows=1.00 loops=1)
+                                Index Cond: (booking_code = (InitPlan 2).col1)
+                                Index Searches: 1
+                                Buffers: shared hit=4
+                          ->  Index Scan using spaces_pkey on spaces s  (cost=0.14..8.16 rows=1 width=36) (actual time=0.001..0.001 rows=1.00 loops=1)
+                                Index Cond: (id = b.space_id)
+                                Index Searches: 1
+                                Buffers: shared hit=2
+                    ->  Index Scan using users_pkey on users u  (cost=0.15..8.17 rows=1 width=36) (actual time=0.001..0.001 rows=1.00 loops=1)
+                          Index Cond: (id = b.renter_id)
+                          Index Searches: 1
+                          Buffers: shared hit=2
+              ->  Bitmap Heap Scan on payments p  (cost=4.17..11.28 rows=3 width=28) (actual time=0.005..0.005 rows=1.00 loops=1)
+                    Recheck Cond: (booking_id = b.id)
+                    Heap Blocks: exact=1
+                    Buffers: shared hit=2
+                    ->  Bitmap Index Scan on payments_booking_id_idx  (cost=0.00..4.17 rows=3 width=0) (actual time=0.001..0.001 rows=1.00 loops=1)
+                          Index Cond: (booking_id = b.id)
+                          Index Searches: 1
+                          Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=91
+Planning Time: 0.289 ms
+Execution Time: 0.037 ms

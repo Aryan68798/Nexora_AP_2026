@@ -1,0 +1,56 @@
+-- R30 | READ | Platform stats: bookings in each status
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+
+-- Query:
+SELECT status, COUNT(*) AS bookings
+FROM bookings
+GROUP BY status
+ORDER BY bookings DESC;
+
+=== R30 run 1 ===
+Sort  (cost=23.84..24.34 rows=200 width=12) (actual time=0.006..0.006 rows=4.00 loops=1)
+  Sort Key: (count(*)) DESC
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=1
+  ->  HashAggregate  (cost=14.20..16.20 rows=200 width=12) (actual time=0.004..0.005 rows=4.00 loops=1)
+        Group Key: status
+        Batches: 1  Memory Usage: 32kB
+        Buffers: shared hit=1
+        ->  Seq Scan on bookings  (cost=0.00..12.80 rows=280 width=4) (actual time=0.001..0.002 rows=6.00 loops=1)
+              Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=4
+Planning Time: 0.017 ms
+Execution Time: 0.011 ms
+
+=== R30 run 2 ===
+Sort  (cost=23.84..24.34 rows=200 width=12) (actual time=0.005..0.005 rows=4.00 loops=1)
+  Sort Key: (count(*)) DESC
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=1
+  ->  HashAggregate  (cost=14.20..16.20 rows=200 width=12) (actual time=0.003..0.004 rows=4.00 loops=1)
+        Group Key: status
+        Batches: 1  Memory Usage: 32kB
+        Buffers: shared hit=1
+        ->  Seq Scan on bookings  (cost=0.00..12.80 rows=280 width=4) (actual time=0.001..0.001 rows=6.00 loops=1)
+              Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=4
+Planning Time: 0.017 ms
+Execution Time: 0.009 ms
+
+=== R30 run 3 ===
+Sort  (cost=23.84..24.34 rows=200 width=12) (actual time=0.005..0.005 rows=4.00 loops=1)
+  Sort Key: (count(*)) DESC
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=1
+  ->  HashAggregate  (cost=14.20..16.20 rows=200 width=12) (actual time=0.004..0.005 rows=4.00 loops=1)
+        Group Key: status
+        Batches: 1  Memory Usage: 32kB
+        Buffers: shared hit=1
+        ->  Seq Scan on bookings  (cost=0.00..12.80 rows=280 width=4) (actual time=0.002..0.002 rows=6.00 loops=1)
+              Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=4
+Planning Time: 0.018 ms
+Execution Time: 0.010 ms

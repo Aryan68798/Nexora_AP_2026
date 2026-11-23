@@ -1,0 +1,103 @@
+-- R35 | READ | Marketing: users who favourited a space but never booked it (EXCEPT)
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+
+-- Query:
+SELECT u.full_name, u.email, s.title
+FROM (
+  SELECT user_id, space_id FROM favourites
+  EXCEPT
+  SELECT renter_id, space_id FROM bookings
+) leads
+JOIN users u  ON u.id = leads.user_id
+JOIN spaces s ON s.id = leads.space_id
+ORDER BY u.full_name;
+
+=== R35 run 1 ===
+Sort  (cost=94.67..95.17 rows=200 width=96) (actual time=0.014..0.014 rows=1.00 loops=1)
+  Sort Key: u.full_name
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=4
+  ->  Hash Join  (cost=85.45..87.02 rows=200 width=96) (actual time=0.012..0.013 rows=1.00 loops=1)
+        Hash Cond: (favourites.space_id = s.id)
+        Buffers: shared hit=4
+        ->  Hash Join  (cost=70.50..71.54 rows=200 width=68) (actual time=0.009..0.010 rows=1.00 loops=1)
+              Hash Cond: (favourites.user_id = u.id)
+              Buffers: shared hit=3
+              ->  HashSetOp Except  (cost=51.95..52.45 rows=200 width=8) (actual time=0.005..0.005 rows=1.00 loops=1)
+                    Buffers: shared hit=2
+                    ->  Seq Scan on favourites  (cost=0.00..28.50 rows=1850 width=8) (actual time=0.001..0.001 rows=4.00 loops=1)
+                          Buffers: shared hit=1
+                    ->  Seq Scan on bookings  (cost=0.00..12.80 rows=280 width=8) (actual time=0.002..0.002 rows=6.00 loops=1)
+                          Buffers: shared hit=1
+              ->  Hash  (cost=13.80..13.80 rows=380 width=68) (actual time=0.004..0.004 rows=8.00 loops=1)
+                    Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                    Buffers: shared hit=1
+                    ->  Seq Scan on users u  (cost=0.00..13.80 rows=380 width=68) (actual time=0.001..0.002 rows=8.00 loops=1)
+                          Buffers: shared hit=1
+        ->  Hash  (cost=12.20..12.20 rows=220 width=36) (actual time=0.002..0.002 rows=6.00 loops=1)
+              Buckets: 1024  Batches: 1  Memory Usage: 9kB
+              Buffers: shared hit=1
+              ->  Seq Scan on spaces s  (cost=0.00..12.20 rows=220 width=36) (actual time=0.001..0.002 rows=6.00 loops=1)
+                    Buffers: shared hit=1
+Planning Time: 0.053 ms
+Execution Time: 0.020 ms
+
+=== R35 run 2 ===
+Sort  (cost=94.67..95.17 rows=200 width=96) (actual time=0.012..0.012 rows=1.00 loops=1)
+  Sort Key: u.full_name
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=4
+  ->  Hash Join  (cost=85.45..87.02 rows=200 width=96) (actual time=0.011..0.011 rows=1.00 loops=1)
+        Hash Cond: (favourites.space_id = s.id)
+        Buffers: shared hit=4
+        ->  Hash Join  (cost=70.50..71.54 rows=200 width=68) (actual time=0.008..0.009 rows=1.00 loops=1)
+              Hash Cond: (favourites.user_id = u.id)
+              Buffers: shared hit=3
+              ->  HashSetOp Except  (cost=51.95..52.45 rows=200 width=8) (actual time=0.005..0.005 rows=1.00 loops=1)
+                    Buffers: shared hit=2
+                    ->  Seq Scan on favourites  (cost=0.00..28.50 rows=1850 width=8) (actual time=0.001..0.001 rows=4.00 loops=1)
+                          Buffers: shared hit=1
+                    ->  Seq Scan on bookings  (cost=0.00..12.80 rows=280 width=8) (actual time=0.002..0.002 rows=6.00 loops=1)
+                          Buffers: shared hit=1
+              ->  Hash  (cost=13.80..13.80 rows=380 width=68) (actual time=0.003..0.003 rows=8.00 loops=1)
+                    Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                    Buffers: shared hit=1
+                    ->  Seq Scan on users u  (cost=0.00..13.80 rows=380 width=68) (actual time=0.001..0.001 rows=8.00 loops=1)
+                          Buffers: shared hit=1
+        ->  Hash  (cost=12.20..12.20 rows=220 width=36) (actual time=0.002..0.002 rows=6.00 loops=1)
+              Buckets: 1024  Batches: 1  Memory Usage: 9kB
+              Buffers: shared hit=1
+              ->  Seq Scan on spaces s  (cost=0.00..12.20 rows=220 width=36) (actual time=0.001..0.001 rows=6.00 loops=1)
+                    Buffers: shared hit=1
+Planning Time: 0.047 ms
+Execution Time: 0.018 ms
+
+=== R35 run 3 ===
+Sort  (cost=94.67..95.17 rows=200 width=96) (actual time=0.012..0.013 rows=1.00 loops=1)
+  Sort Key: u.full_name
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=4
+  ->  Hash Join  (cost=85.45..87.02 rows=200 width=96) (actual time=0.011..0.012 rows=1.00 loops=1)
+        Hash Cond: (favourites.space_id = s.id)
+        Buffers: shared hit=4
+        ->  Hash Join  (cost=70.50..71.54 rows=200 width=68) (actual time=0.008..0.009 rows=1.00 loops=1)
+              Hash Cond: (favourites.user_id = u.id)
+              Buffers: shared hit=3
+              ->  HashSetOp Except  (cost=51.95..52.45 rows=200 width=8) (actual time=0.005..0.005 rows=1.00 loops=1)
+                    Buffers: shared hit=2
+                    ->  Seq Scan on favourites  (cost=0.00..28.50 rows=1850 width=8) (actual time=0.001..0.001 rows=4.00 loops=1)
+                          Buffers: shared hit=1
+                    ->  Seq Scan on bookings  (cost=0.00..12.80 rows=280 width=8) (actual time=0.002..0.002 rows=6.00 loops=1)
+                          Buffers: shared hit=1
+              ->  Hash  (cost=13.80..13.80 rows=380 width=68) (actual time=0.003..0.003 rows=8.00 loops=1)
+                    Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                    Buffers: shared hit=1
+                    ->  Seq Scan on users u  (cost=0.00..13.80 rows=380 width=68) (actual time=0.001..0.001 rows=8.00 loops=1)
+                          Buffers: shared hit=1
+        ->  Hash  (cost=12.20..12.20 rows=220 width=36) (actual time=0.002..0.002 rows=6.00 loops=1)
+              Buckets: 1024  Batches: 1  Memory Usage: 9kB
+              Buffers: shared hit=1
+              ->  Seq Scan on spaces s  (cost=0.00..12.20 rows=220 width=36) (actual time=0.001..0.001 rows=6.00 loops=1)
+                    Buffers: shared hit=1
+Planning Time: 0.047 ms
+Execution Time: 0.017 ms

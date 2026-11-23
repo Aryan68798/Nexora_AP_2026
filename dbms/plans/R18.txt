@@ -1,0 +1,90 @@
+-- R18 | READ | My bookings: a renter's bookings, newest first, with total
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+
+-- Query:
+SELECT b.booking_code, s.title AS space, c.name AS city, b.starts_at, b.ends_at, b.status,
+       b.unit_price * b.units + b.cleaning_fee + b.service_fee
+         + b.tax_amount - b.discount_amount AS total_amount
+FROM bookings b
+JOIN spaces s ON s.id = b.space_id
+JOIN cities c ON c.id = s.city_id
+WHERE b.renter_id = 5
+ORDER BY b.starts_at DESC;
+
+=== R18 run 1 ===
+Sort  (cost=16.81..16.82 rows=1 width=148) (actual time=0.012..0.012 rows=2.00 loops=1)
+  Sort Key: b.starts_at DESC
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=9 read=1
+  ->  Nested Loop  (cost=0.44..16.80 rows=1 width=148) (actual time=0.009..0.010 rows=2.00 loops=1)
+        Buffers: shared hit=9 read=1
+        ->  Nested Loop  (cost=0.29..16.40 rows=1 width=172) (actual time=0.007..0.008 rows=2.00 loops=1)
+              Buffers: shared hit=5 read=1
+              ->  Index Scan using bookings_renter_id_idx on bookings b  (cost=0.15..8.17 rows=1 width=140) (actual time=0.005..0.005 rows=2.00 loops=1)
+                    Index Cond: (renter_id = 5)
+                    Index Searches: 1
+                    Buffers: shared hit=1 read=1
+              ->  Index Scan using spaces_pkey on spaces s  (cost=0.14..8.16 rows=1 width=40) (actual time=0.000..0.000 rows=1.00 loops=2)
+                    Index Cond: (id = b.space_id)
+                    Index Searches: 2
+                    Buffers: shared hit=4
+        ->  Index Scan using cities_pkey on cities c  (cost=0.15..0.39 rows=1 width=36) (actual time=0.000..0.000 rows=1.00 loops=2)
+              Index Cond: (id = s.city_id)
+              Index Searches: 2
+              Buffers: shared hit=4
+Planning:
+  Buffers: shared hit=6
+Planning Time: 0.060 ms
+Execution Time: 0.019 ms
+
+=== R18 run 2 ===
+Sort  (cost=16.81..16.82 rows=1 width=148) (actual time=0.007..0.007 rows=2.00 loops=1)
+  Sort Key: b.starts_at DESC
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=10
+  ->  Nested Loop  (cost=0.44..16.80 rows=1 width=148) (actual time=0.004..0.006 rows=2.00 loops=1)
+        Buffers: shared hit=10
+        ->  Nested Loop  (cost=0.29..16.40 rows=1 width=172) (actual time=0.003..0.004 rows=2.00 loops=1)
+              Buffers: shared hit=6
+              ->  Index Scan using bookings_renter_id_idx on bookings b  (cost=0.15..8.17 rows=1 width=140) (actual time=0.002..0.002 rows=2.00 loops=1)
+                    Index Cond: (renter_id = 5)
+                    Index Searches: 1
+                    Buffers: shared hit=2
+              ->  Index Scan using spaces_pkey on spaces s  (cost=0.14..8.16 rows=1 width=40) (actual time=0.000..0.000 rows=1.00 loops=2)
+                    Index Cond: (id = b.space_id)
+                    Index Searches: 2
+                    Buffers: shared hit=4
+        ->  Index Scan using cities_pkey on cities c  (cost=0.15..0.39 rows=1 width=36) (actual time=0.000..0.000 rows=1.00 loops=2)
+              Index Cond: (id = s.city_id)
+              Index Searches: 2
+              Buffers: shared hit=4
+Planning:
+  Buffers: shared hit=6
+Planning Time: 0.049 ms
+Execution Time: 0.012 ms
+
+=== R18 run 3 ===
+Sort  (cost=16.81..16.82 rows=1 width=148) (actual time=0.008..0.008 rows=2.00 loops=1)
+  Sort Key: b.starts_at DESC
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=10
+  ->  Nested Loop  (cost=0.44..16.80 rows=1 width=148) (actual time=0.005..0.007 rows=2.00 loops=1)
+        Buffers: shared hit=10
+        ->  Nested Loop  (cost=0.29..16.40 rows=1 width=172) (actual time=0.003..0.004 rows=2.00 loops=1)
+              Buffers: shared hit=6
+              ->  Index Scan using bookings_renter_id_idx on bookings b  (cost=0.15..8.17 rows=1 width=140) (actual time=0.002..0.002 rows=2.00 loops=1)
+                    Index Cond: (renter_id = 5)
+                    Index Searches: 1
+                    Buffers: shared hit=2
+              ->  Index Scan using spaces_pkey on spaces s  (cost=0.14..8.16 rows=1 width=40) (actual time=0.000..0.000 rows=1.00 loops=2)
+                    Index Cond: (id = b.space_id)
+                    Index Searches: 2
+                    Buffers: shared hit=4
+        ->  Index Scan using cities_pkey on cities c  (cost=0.15..0.39 rows=1 width=36) (actual time=0.000..0.000 rows=1.00 loops=2)
+              Index Cond: (id = s.city_id)
+              Index Searches: 2
+              Buffers: shared hit=4
+Planning:
+  Buffers: shared hit=6
+Planning Time: 0.060 ms
+Execution Time: 0.014 ms

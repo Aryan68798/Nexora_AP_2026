@@ -1,0 +1,94 @@
+-- R29 | READ | Listings waiting for review or still in draft
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+
+-- Query:
+SELECT s.id, s.title, s.status, u.full_name AS owner, s.created_at
+FROM spaces s
+JOIN owner_profiles op ON op.id = s.owner_id
+JOIN users u           ON u.id = op.user_id
+WHERE s.status IN ('PENDING_REVIEW', 'DRAFT')
+ORDER BY s.created_at;
+
+=== R29 run 1 ===
+Sort  (cost=26.39..26.40 rows=2 width=80) (actual time=0.006..0.006 rows=1.00 loops=1)
+  Sort Key: s.created_at
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=6
+  ->  Nested Loop  (cost=4.46..26.38 rows=2 width=80) (actual time=0.005..0.005 rows=1.00 loops=1)
+        Buffers: shared hit=6
+        ->  Nested Loop  (cost=4.31..25.86 rows=2 width=52) (actual time=0.004..0.005 rows=1.00 loops=1)
+              Buffers: shared hit=4
+              ->  Bitmap Heap Scan on spaces s  (cost=4.16..9.50 rows=2 width=52) (actual time=0.003..0.003 rows=1.00 loops=1)
+                    Recheck Cond: (status = ANY ('{PENDING_REVIEW,DRAFT}'::"SpaceStatus"[]))
+                    Heap Blocks: exact=1
+                    Buffers: shared hit=2
+                    ->  Bitmap Index Scan on spaces_status_idx  (cost=0.00..4.16 rows=2 width=0) (actual time=0.002..0.002 rows=7.00 loops=1)
+                          Index Cond: (status = ANY ('{PENDING_REVIEW,DRAFT}'::"SpaceStatus"[]))
+                          Index Searches: 1
+                          Buffers: shared hit=1
+              ->  Index Scan using owner_profiles_pkey on owner_profiles op  (cost=0.15..8.17 rows=1 width=8) (actual time=0.001..0.001 rows=1.00 loops=1)
+                    Index Cond: (id = s.owner_id)
+                    Index Searches: 1
+                    Buffers: shared hit=2
+        ->  Index Scan using users_pkey on users u  (cost=0.15..0.26 rows=1 width=36) (actual time=0.000..0.000 rows=1.00 loops=1)
+              Index Cond: (id = op.user_id)
+              Index Searches: 1
+              Buffers: shared hit=2
+Planning Time: 0.043 ms
+Execution Time: 0.011 ms
+
+=== R29 run 2 ===
+Sort  (cost=26.39..26.40 rows=2 width=80) (actual time=0.007..0.008 rows=1.00 loops=1)
+  Sort Key: s.created_at
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=6
+  ->  Nested Loop  (cost=4.46..26.38 rows=2 width=80) (actual time=0.006..0.007 rows=1.00 loops=1)
+        Buffers: shared hit=6
+        ->  Nested Loop  (cost=4.31..25.86 rows=2 width=52) (actual time=0.005..0.006 rows=1.00 loops=1)
+              Buffers: shared hit=4
+              ->  Bitmap Heap Scan on spaces s  (cost=4.16..9.50 rows=2 width=52) (actual time=0.004..0.004 rows=1.00 loops=1)
+                    Recheck Cond: (status = ANY ('{PENDING_REVIEW,DRAFT}'::"SpaceStatus"[]))
+                    Heap Blocks: exact=1
+                    Buffers: shared hit=2
+                    ->  Bitmap Index Scan on spaces_status_idx  (cost=0.00..4.16 rows=2 width=0) (actual time=0.002..0.002 rows=9.00 loops=1)
+                          Index Cond: (status = ANY ('{PENDING_REVIEW,DRAFT}'::"SpaceStatus"[]))
+                          Index Searches: 1
+                          Buffers: shared hit=1
+              ->  Index Scan using owner_profiles_pkey on owner_profiles op  (cost=0.15..8.17 rows=1 width=8) (actual time=0.001..0.001 rows=1.00 loops=1)
+                    Index Cond: (id = s.owner_id)
+                    Index Searches: 1
+                    Buffers: shared hit=2
+        ->  Index Scan using users_pkey on users u  (cost=0.15..0.26 rows=1 width=36) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: (id = op.user_id)
+              Index Searches: 1
+              Buffers: shared hit=2
+Planning Time: 0.043 ms
+Execution Time: 0.015 ms
+
+=== R29 run 3 ===
+Sort  (cost=26.39..26.40 rows=2 width=80) (actual time=0.007..0.007 rows=1.00 loops=1)
+  Sort Key: s.created_at
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=6
+  ->  Nested Loop  (cost=4.46..26.38 rows=2 width=80) (actual time=0.006..0.007 rows=1.00 loops=1)
+        Buffers: shared hit=6
+        ->  Nested Loop  (cost=4.31..25.86 rows=2 width=52) (actual time=0.005..0.006 rows=1.00 loops=1)
+              Buffers: shared hit=4
+              ->  Bitmap Heap Scan on spaces s  (cost=4.16..9.50 rows=2 width=52) (actual time=0.004..0.004 rows=1.00 loops=1)
+                    Recheck Cond: (status = ANY ('{PENDING_REVIEW,DRAFT}'::"SpaceStatus"[]))
+                    Heap Blocks: exact=1
+                    Buffers: shared hit=2
+                    ->  Bitmap Index Scan on spaces_status_idx  (cost=0.00..4.16 rows=2 width=0) (actual time=0.002..0.002 rows=11.00 loops=1)
+                          Index Cond: (status = ANY ('{PENDING_REVIEW,DRAFT}'::"SpaceStatus"[]))
+                          Index Searches: 1
+                          Buffers: shared hit=1
+              ->  Index Scan using owner_profiles_pkey on owner_profiles op  (cost=0.15..8.17 rows=1 width=8) (actual time=0.001..0.001 rows=1.00 loops=1)
+                    Index Cond: (id = s.owner_id)
+                    Index Searches: 1
+                    Buffers: shared hit=2
+        ->  Index Scan using users_pkey on users u  (cost=0.15..0.26 rows=1 width=36) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: (id = op.user_id)
+              Index Searches: 1
+              Buffers: shared hit=2
+Planning Time: 0.041 ms
+Execution Time: 0.014 ms

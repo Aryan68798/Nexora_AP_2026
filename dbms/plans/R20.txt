@@ -1,0 +1,79 @@
+-- R20 | READ | Review prompt: the renter's completed bookings not yet reviewed
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+
+-- Query:
+SELECT b.id, b.booking_code, s.title AS space, b.ends_at
+FROM bookings b
+JOIN spaces s ON s.id = b.space_id
+WHERE b.renter_id = 5
+  AND b.status = 'COMPLETED'
+  AND NOT EXISTS (SELECT 1 FROM reviews rv WHERE rv.booking_id = b.id);
+
+=== R20 run 1 ===
+Nested Loop Anti Join  (cost=0.44..24.58 rows=1 width=76) (actual time=0.008..0.008 rows=0.00 loops=1)
+  Buffers: shared hit=5 read=1
+  ->  Nested Loop  (cost=0.29..16.40 rows=1 width=76) (actual time=0.005..0.005 rows=1.00 loops=1)
+        Buffers: shared hit=3 read=1
+        ->  Index Scan using bookings_status_idx on bookings b  (cost=0.15..8.17 rows=1 width=48) (actual time=0.004..0.004 rows=1.00 loops=1)
+              Index Cond: (status = 'COMPLETED'::"BookingStatus")
+              Filter: (renter_id = 5)
+              Rows Removed by Filter: 2
+              Index Searches: 1
+              Buffers: shared hit=1 read=1
+        ->  Index Scan using spaces_pkey on spaces s  (cost=0.14..8.16 rows=1 width=36) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: (id = b.space_id)
+              Index Searches: 1
+              Buffers: shared hit=2
+  ->  Index Only Scan using reviews_booking_id_key on reviews rv  (cost=0.15..8.17 rows=1 width=4) (actual time=0.003..0.003 rows=1.00 loops=1)
+        Index Cond: (booking_id = b.id)
+        Heap Fetches: 1
+        Index Searches: 1
+        Buffers: shared hit=2
+Planning Time: 0.053 ms
+Execution Time: 0.013 ms
+
+=== R20 run 2 ===
+Nested Loop Anti Join  (cost=0.44..24.58 rows=1 width=76) (actual time=0.007..0.007 rows=0.00 loops=1)
+  Buffers: shared hit=6
+  ->  Nested Loop  (cost=0.29..16.40 rows=1 width=76) (actual time=0.003..0.003 rows=1.00 loops=1)
+        Buffers: shared hit=4
+        ->  Index Scan using bookings_status_idx on bookings b  (cost=0.15..8.17 rows=1 width=48) (actual time=0.002..0.002 rows=1.00 loops=1)
+              Index Cond: (status = 'COMPLETED'::"BookingStatus")
+              Filter: (renter_id = 5)
+              Rows Removed by Filter: 2
+              Index Searches: 1
+              Buffers: shared hit=2
+        ->  Index Scan using spaces_pkey on spaces s  (cost=0.14..8.16 rows=1 width=36) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: (id = b.space_id)
+              Index Searches: 1
+              Buffers: shared hit=2
+  ->  Index Only Scan using reviews_booking_id_key on reviews rv  (cost=0.15..8.17 rows=1 width=4) (actual time=0.003..0.003 rows=1.00 loops=1)
+        Index Cond: (booking_id = b.id)
+        Heap Fetches: 1
+        Index Searches: 1
+        Buffers: shared hit=2
+Planning Time: 0.054 ms
+Execution Time: 0.013 ms
+
+=== R20 run 3 ===
+Nested Loop Anti Join  (cost=0.44..24.58 rows=1 width=76) (actual time=0.007..0.007 rows=0.00 loops=1)
+  Buffers: shared hit=6
+  ->  Nested Loop  (cost=0.29..16.40 rows=1 width=76) (actual time=0.003..0.003 rows=1.00 loops=1)
+        Buffers: shared hit=4
+        ->  Index Scan using bookings_status_idx on bookings b  (cost=0.15..8.17 rows=1 width=48) (actual time=0.002..0.002 rows=1.00 loops=1)
+              Index Cond: (status = 'COMPLETED'::"BookingStatus")
+              Filter: (renter_id = 5)
+              Rows Removed by Filter: 2
+              Index Searches: 1
+              Buffers: shared hit=2
+        ->  Index Scan using spaces_pkey on spaces s  (cost=0.14..8.16 rows=1 width=36) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: (id = b.space_id)
+              Index Searches: 1
+              Buffers: shared hit=2
+  ->  Index Only Scan using reviews_booking_id_key on reviews rv  (cost=0.15..8.17 rows=1 width=4) (actual time=0.003..0.003 rows=1.00 loops=1)
+        Index Cond: (booking_id = b.id)
+        Heap Fetches: 1
+        Index Searches: 1
+        Buffers: shared hit=2
+Planning Time: 0.060 ms
+Execution Time: 0.013 ms

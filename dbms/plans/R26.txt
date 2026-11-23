@@ -1,0 +1,119 @@
+-- R26 | READ | Owner earnings: successful charges minus successful refunds, per space
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+
+-- Query:
+SELECT s.title,
+       SUM(CASE WHEN p.kind = 'CHARGE' THEN p.amount ELSE 0 END) AS charged,
+       SUM(CASE WHEN p.kind = 'REFUND' THEN p.amount ELSE 0 END) AS refunded,
+       SUM(CASE WHEN p.kind = 'CHARGE' THEN p.amount ELSE -p.amount END) AS net_earnings
+FROM payments p
+JOIN bookings b ON b.id = p.booking_id
+JOIN spaces s   ON s.id = b.space_id
+WHERE s.owner_id = 1 AND p.status = 'SUCCEEDED'
+GROUP BY s.id, s.title
+ORDER BY net_earnings DESC;
+
+=== R26 run 1 ===
+Sort  (cost=16.79..16.80 rows=1 width=132) (actual time=0.010..0.010 rows=2.00 loops=1)
+  Sort Key: (sum(CASE WHEN (p.kind = 'CHARGE'::"PaymentKind") THEN p.amount ELSE (- p.amount) END)) DESC
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=11
+  ->  GroupAggregate  (cost=16.74..16.78 rows=1 width=132) (actual time=0.008..0.009 rows=2.00 loops=1)
+        Group Key: s.id
+        Buffers: shared hit=11
+        ->  Sort  (cost=16.74..16.74 rows=1 width=56) (actual time=0.005..0.006 rows=2.00 loops=1)
+              Sort Key: s.id
+              Sort Method: quicksort  Memory: 25kB
+              Buffers: shared hit=11
+              ->  Nested Loop  (cost=0.44..16.73 rows=1 width=56) (actual time=0.003..0.005 rows=2.00 loops=1)
+                    Buffers: shared hit=11
+                    ->  Nested Loop  (cost=0.29..16.34 rows=1 width=40) (actual time=0.002..0.002 rows=3.00 loops=1)
+                          Buffers: shared hit=6
+                          ->  Index Scan using spaces_owner_id_idx on spaces s  (cost=0.14..8.16 rows=1 width=36) (actual time=0.001..0.001 rows=2.00 loops=1)
+                                Index Cond: (owner_id = 1)
+                                Index Searches: 1
+                                Buffers: shared hit=2
+                          ->  Index Scan using bookings_space_id_starts_at_ends_at_idx on bookings b  (cost=0.15..8.17 rows=1 width=8) (actual time=0.000..0.000 rows=1.50 loops=2)
+                                Index Cond: (space_id = s.id)
+                                Index Searches: 2
+                                Buffers: shared hit=4
+                    ->  Index Scan using payments_booking_id_idx on payments p  (cost=0.15..0.38 rows=1 width=24) (actual time=0.000..0.001 rows=0.67 loops=3)
+                          Index Cond: (booking_id = b.id)
+                          Filter: (status = 'SUCCEEDED'::"PaymentStatus")
+                          Rows Removed by Filter: 0
+                          Index Searches: 3
+                          Buffers: shared hit=5
+Planning:
+  Buffers: shared hit=5
+Planning Time: 0.066 ms
+Execution Time: 0.019 ms
+
+=== R26 run 2 ===
+Sort  (cost=16.79..16.80 rows=1 width=132) (actual time=0.011..0.012 rows=2.00 loops=1)
+  Sort Key: (sum(CASE WHEN (p.kind = 'CHARGE'::"PaymentKind") THEN p.amount ELSE (- p.amount) END)) DESC
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=11
+  ->  GroupAggregate  (cost=16.74..16.78 rows=1 width=132) (actual time=0.010..0.011 rows=2.00 loops=1)
+        Group Key: s.id
+        Buffers: shared hit=11
+        ->  Sort  (cost=16.74..16.74 rows=1 width=56) (actual time=0.007..0.007 rows=2.00 loops=1)
+              Sort Key: s.id
+              Sort Method: quicksort  Memory: 25kB
+              Buffers: shared hit=11
+              ->  Nested Loop  (cost=0.44..16.73 rows=1 width=56) (actual time=0.003..0.006 rows=2.00 loops=1)
+                    Buffers: shared hit=11
+                    ->  Nested Loop  (cost=0.29..16.34 rows=1 width=40) (actual time=0.002..0.003 rows=3.00 loops=1)
+                          Buffers: shared hit=6
+                          ->  Index Scan using spaces_owner_id_idx on spaces s  (cost=0.14..8.16 rows=1 width=36) (actual time=0.001..0.001 rows=2.00 loops=1)
+                                Index Cond: (owner_id = 1)
+                                Index Searches: 1
+                                Buffers: shared hit=2
+                          ->  Index Scan using bookings_space_id_starts_at_ends_at_idx on bookings b  (cost=0.15..8.17 rows=1 width=8) (actual time=0.001..0.001 rows=1.50 loops=2)
+                                Index Cond: (space_id = s.id)
+                                Index Searches: 2
+                                Buffers: shared hit=4
+                    ->  Index Scan using payments_booking_id_idx on payments p  (cost=0.15..0.38 rows=1 width=24) (actual time=0.001..0.001 rows=0.67 loops=3)
+                          Index Cond: (booking_id = b.id)
+                          Filter: (status = 'SUCCEEDED'::"PaymentStatus")
+                          Rows Removed by Filter: 0
+                          Index Searches: 3
+                          Buffers: shared hit=5
+Planning:
+  Buffers: shared hit=5
+Planning Time: 0.065 ms
+Execution Time: 0.022 ms
+
+=== R26 run 3 ===
+Sort  (cost=16.79..16.80 rows=1 width=132) (actual time=0.009..0.009 rows=2.00 loops=1)
+  Sort Key: (sum(CASE WHEN (p.kind = 'CHARGE'::"PaymentKind") THEN p.amount ELSE (- p.amount) END)) DESC
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=11
+  ->  GroupAggregate  (cost=16.74..16.78 rows=1 width=132) (actual time=0.007..0.008 rows=2.00 loops=1)
+        Group Key: s.id
+        Buffers: shared hit=11
+        ->  Sort  (cost=16.74..16.74 rows=1 width=56) (actual time=0.004..0.005 rows=2.00 loops=1)
+              Sort Key: s.id
+              Sort Method: quicksort  Memory: 25kB
+              Buffers: shared hit=11
+              ->  Nested Loop  (cost=0.44..16.73 rows=1 width=56) (actual time=0.002..0.004 rows=2.00 loops=1)
+                    Buffers: shared hit=11
+                    ->  Nested Loop  (cost=0.29..16.34 rows=1 width=40) (actual time=0.001..0.002 rows=3.00 loops=1)
+                          Buffers: shared hit=6
+                          ->  Index Scan using spaces_owner_id_idx on spaces s  (cost=0.14..8.16 rows=1 width=36) (actual time=0.000..0.001 rows=2.00 loops=1)
+                                Index Cond: (owner_id = 1)
+                                Index Searches: 1
+                                Buffers: shared hit=2
+                          ->  Index Scan using bookings_space_id_starts_at_ends_at_idx on bookings b  (cost=0.15..8.17 rows=1 width=8) (actual time=0.000..0.000 rows=1.50 loops=2)
+                                Index Cond: (space_id = s.id)
+                                Index Searches: 2
+                                Buffers: shared hit=4
+                    ->  Index Scan using payments_booking_id_idx on payments p  (cost=0.15..0.38 rows=1 width=24) (actual time=0.000..0.000 rows=0.67 loops=3)
+                          Index Cond: (booking_id = b.id)
+                          Filter: (status = 'SUCCEEDED'::"PaymentStatus")
+                          Rows Removed by Filter: 0
+                          Index Searches: 3
+                          Buffers: shared hit=5
+Planning:
+  Buffers: shared hit=5
+Planning Time: 0.070 ms
+Execution Time: 0.016 ms

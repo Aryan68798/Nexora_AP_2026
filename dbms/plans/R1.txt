@@ -1,0 +1,40 @@
+-- R1 | READ | Login: find an active user by email
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+
+-- Query:
+SELECT id, email, password_hash, full_name, role
+FROM users
+WHERE email = 'priya.sharma@example.com' AND is_active;
+
+=== R1 run 1 ===
+Index Scan using users_email_key on users  (cost=0.15..8.17 rows=1 width=104) (actual time=0.012..0.012 rows=1.00 loops=1)
+  Index Cond: (email = 'priya.sharma@example.com'::text)
+  Filter: is_active
+  Index Searches: 1
+  Buffers: shared read=2
+Planning:
+  Buffers: shared hit=105 read=29
+Planning Time: 0.730 ms
+Execution Time: 0.029 ms
+
+=== R1 run 2 ===
+Index Scan using users_email_key on users  (cost=0.15..8.17 rows=1 width=104) (actual time=0.005..0.005 rows=1.00 loops=1)
+  Index Cond: (email = 'priya.sharma@example.com'::text)
+  Filter: is_active
+  Index Searches: 1
+  Buffers: shared hit=2
+Planning:
+  Buffers: shared hit=134
+Planning Time: 0.232 ms
+Execution Time: 0.018 ms
+
+=== R1 run 3 ===
+Index Scan using users_email_key on users  (cost=0.15..8.17 rows=1 width=104) (actual time=0.005..0.006 rows=1.00 loops=1)
+  Index Cond: (email = 'priya.sharma@example.com'::text)
+  Filter: is_active
+  Index Searches: 1
+  Buffers: shared hit=2
+Planning:
+  Buffers: shared hit=134
+Planning Time: 0.210 ms
+Execution Time: 0.019 ms

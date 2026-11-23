@@ -1,0 +1,69 @@
+-- R28 | READ | Owners waiting for verification
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+
+-- Query:
+SELECT op.id, u.full_name, u.email, op.business_name, op.gst_number, op.created_at
+FROM owner_profiles op
+JOIN users u ON u.id = op.user_id
+WHERE op.verification_status = 'PENDING'
+ORDER BY op.created_at;
+
+=== R28 run 1 ===
+Sort  (cost=31.24..31.25 rows=3 width=140) (actual time=0.006..0.007 rows=1.00 loops=1)
+  Sort Key: op.created_at
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=2
+  ->  Hash Join  (cost=16.41..31.22 rows=3 width=140) (actual time=0.005..0.006 rows=1.00 loops=1)
+        Hash Cond: (u.id = op.user_id)
+        Buffers: shared hit=2
+        ->  Seq Scan on users u  (cost=0.00..13.80 rows=380 width=68) (actual time=0.001..0.002 rows=8.00 loops=1)
+              Buffers: shared hit=1
+        ->  Hash  (cost=16.38..16.38 rows=3 width=80) (actual time=0.002..0.002 rows=1.00 loops=1)
+              Buckets: 1024  Batches: 1  Memory Usage: 9kB
+              Buffers: shared hit=1
+              ->  Seq Scan on owner_profiles op  (cost=0.00..16.38 rows=3 width=80) (actual time=0.002..0.002 rows=1.00 loops=1)
+                    Filter: (verification_status = 'PENDING'::"VerificationStatus")
+                    Rows Removed by Filter: 2
+                    Buffers: shared hit=1
+Planning Time: 0.022 ms
+Execution Time: 0.011 ms
+
+=== R28 run 2 ===
+Sort  (cost=31.24..31.25 rows=3 width=140) (actual time=0.006..0.006 rows=1.00 loops=1)
+  Sort Key: op.created_at
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=2
+  ->  Hash Join  (cost=16.41..31.22 rows=3 width=140) (actual time=0.005..0.006 rows=1.00 loops=1)
+        Hash Cond: (u.id = op.user_id)
+        Buffers: shared hit=2
+        ->  Seq Scan on users u  (cost=0.00..13.80 rows=380 width=68) (actual time=0.001..0.002 rows=8.00 loops=1)
+              Buffers: shared hit=1
+        ->  Hash  (cost=16.38..16.38 rows=3 width=80) (actual time=0.002..0.003 rows=1.00 loops=1)
+              Buckets: 1024  Batches: 1  Memory Usage: 9kB
+              Buffers: shared hit=1
+              ->  Seq Scan on owner_profiles op  (cost=0.00..16.38 rows=3 width=80) (actual time=0.002..0.002 rows=1.00 loops=1)
+                    Filter: (verification_status = 'PENDING'::"VerificationStatus")
+                    Rows Removed by Filter: 2
+                    Buffers: shared hit=1
+Planning Time: 0.026 ms
+Execution Time: 0.011 ms
+
+=== R28 run 3 ===
+Sort  (cost=31.24..31.25 rows=3 width=140) (actual time=0.006..0.007 rows=1.00 loops=1)
+  Sort Key: op.created_at
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=2
+  ->  Hash Join  (cost=16.41..31.22 rows=3 width=140) (actual time=0.005..0.006 rows=1.00 loops=1)
+        Hash Cond: (u.id = op.user_id)
+        Buffers: shared hit=2
+        ->  Seq Scan on users u  (cost=0.00..13.80 rows=380 width=68) (actual time=0.001..0.002 rows=8.00 loops=1)
+              Buffers: shared hit=1
+        ->  Hash  (cost=16.38..16.38 rows=3 width=80) (actual time=0.002..0.002 rows=1.00 loops=1)
+              Buckets: 1024  Batches: 1  Memory Usage: 9kB
+              Buffers: shared hit=1
+              ->  Seq Scan on owner_profiles op  (cost=0.00..16.38 rows=3 width=80) (actual time=0.002..0.002 rows=1.00 loops=1)
+                    Filter: (verification_status = 'PENDING'::"VerificationStatus")
+                    Rows Removed by Filter: 2
+                    Buffers: shared hit=1
+Planning Time: 0.025 ms
+Execution Time: 0.011 ms
