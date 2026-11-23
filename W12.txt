@@ -1,0 +1,51 @@
+-- W12 | WRITE | Owner accepts the booking request
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+-- WRITE queries run inside BEGIN ... ROLLBACK, so the data is unchanged
+
+-- Query:
+UPDATE bookings
+SET status = 'CONFIRMED', updated_at = now()
+WHERE booking_code = 'SC-DEMO-00001' AND status = 'PENDING'
+RETURNING booking_code, status;
+
+=== W12 run 1 ===
+Update on bookings  (cost=0.15..8.18 rows=1 width=18) (actual time=0.028..0.029 rows=1.00 loops=1)
+  Buffers: shared hit=18
+  ->  Index Scan using bookings_status_idx on bookings  (cost=0.15..8.18 rows=1 width=18) (actual time=0.002..0.002 rows=1.00 loops=1)
+        Index Cond: (status = 'PENDING'::"BookingStatus")
+        Filter: (booking_code = 'SC-DEMO-00001'::text)
+        Rows Removed by Filter: 1
+        Index Searches: 1
+        Buffers: shared hit=3
+Planning Time: 0.012 ms
+Trigger for constraint bookings_space_id_fkey: time=0.013 calls=1
+Trigger for constraint bookings_renter_id_fkey: time=0.009 calls=1
+Execution Time: 0.056 ms
+
+=== W12 run 2 ===
+Update on bookings  (cost=0.15..8.18 rows=1 width=18) (actual time=0.034..0.034 rows=1.00 loops=1)
+  Buffers: shared hit=18
+  ->  Index Scan using bookings_status_idx on bookings  (cost=0.15..8.18 rows=1 width=18) (actual time=0.002..0.002 rows=1.00 loops=1)
+        Index Cond: (status = 'PENDING'::"BookingStatus")
+        Filter: (booking_code = 'SC-DEMO-00001'::text)
+        Rows Removed by Filter: 1
+        Index Searches: 1
+        Buffers: shared hit=3
+Planning Time: 0.013 ms
+Trigger for constraint bookings_space_id_fkey: time=0.016 calls=1
+Trigger for constraint bookings_renter_id_fkey: time=0.011 calls=1
+Execution Time: 0.068 ms
+
+=== W12 run 3 ===
+Update on bookings  (cost=0.15..8.18 rows=1 width=18) (actual time=0.030..0.030 rows=1.00 loops=1)
+  Buffers: shared hit=18
+  ->  Index Scan using bookings_status_idx on bookings  (cost=0.15..8.18 rows=1 width=18) (actual time=0.002..0.002 rows=1.00 loops=1)
+        Index Cond: (status = 'PENDING'::"BookingStatus")
+        Filter: (booking_code = 'SC-DEMO-00001'::text)
+        Rows Removed by Filter: 1
+        Index Searches: 1
+        Buffers: shared hit=3
+Planning Time: 0.012 ms
+Trigger for constraint bookings_space_id_fkey: time=0.016 calls=1
+Trigger for constraint bookings_renter_id_fkey: time=0.011 calls=1
+Execution Time: 0.063 ms

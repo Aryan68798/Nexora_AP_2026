@@ -1,0 +1,68 @@
+-- W17 | WRITE | Renter writes a review for a completed booking that has no review yet
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+-- WRITE queries run inside BEGIN ... ROLLBACK, so the data is unchanged
+
+-- Query:
+INSERT INTO reviews (booking_id, rating, comment, updated_at)
+SELECT b.id, 4, 'Good room, a bit noisy at lunch time.', now()
+FROM bookings b
+WHERE b.renter_id = 5 AND b.status = 'COMPLETED'
+  AND NOT EXISTS (SELECT 1 FROM reviews rv WHERE rv.booking_id = b.id)
+RETURNING id, booking_id, rating;
+
+=== W17 run 1 ===
+Insert on reviews  (cost=0.30..16.37 rows=1 width=98) (actual time=0.002..0.003 rows=0.00 loops=1)
+  Buffers: shared hit=4
+  ->  Nested Loop Anti Join  (cost=0.30..16.37 rows=1 width=98) (actual time=0.002..0.002 rows=0.00 loops=1)
+        Buffers: shared hit=4
+        ->  Index Scan using bookings_status_idx on bookings b  (cost=0.15..8.17 rows=1 width=4) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: (status = 'COMPLETED'::"BookingStatus")
+              Filter: (renter_id = 5)
+              Rows Removed by Filter: 2
+              Index Searches: 1
+              Buffers: shared hit=2
+        ->  Index Only Scan using reviews_booking_id_key on reviews rv  (cost=0.15..8.17 rows=1 width=4) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: (booking_id = b.id)
+              Heap Fetches: 1
+              Index Searches: 1
+              Buffers: shared hit=2
+Planning Time: 0.033 ms
+Execution Time: 0.008 ms
+
+=== W17 run 2 ===
+Insert on reviews  (cost=0.30..16.37 rows=1 width=98) (actual time=0.003..0.003 rows=0.00 loops=1)
+  Buffers: shared hit=4
+  ->  Nested Loop Anti Join  (cost=0.30..16.37 rows=1 width=98) (actual time=0.003..0.003 rows=0.00 loops=1)
+        Buffers: shared hit=4
+        ->  Index Scan using bookings_status_idx on bookings b  (cost=0.15..8.17 rows=1 width=4) (actual time=0.001..0.002 rows=1.00 loops=1)
+              Index Cond: (status = 'COMPLETED'::"BookingStatus")
+              Filter: (renter_id = 5)
+              Rows Removed by Filter: 2
+              Index Searches: 1
+              Buffers: shared hit=2
+        ->  Index Only Scan using reviews_booking_id_key on reviews rv  (cost=0.15..8.17 rows=1 width=4) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: (booking_id = b.id)
+              Heap Fetches: 1
+              Index Searches: 1
+              Buffers: shared hit=2
+Planning Time: 0.031 ms
+Execution Time: 0.009 ms
+
+=== W17 run 3 ===
+Insert on reviews  (cost=0.30..16.37 rows=1 width=98) (actual time=0.002..0.002 rows=0.00 loops=1)
+  Buffers: shared hit=4
+  ->  Nested Loop Anti Join  (cost=0.30..16.37 rows=1 width=98) (actual time=0.002..0.002 rows=0.00 loops=1)
+        Buffers: shared hit=4
+        ->  Index Scan using bookings_status_idx on bookings b  (cost=0.15..8.17 rows=1 width=4) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: (status = 'COMPLETED'::"BookingStatus")
+              Filter: (renter_id = 5)
+              Rows Removed by Filter: 2
+              Index Searches: 1
+              Buffers: shared hit=2
+        ->  Index Only Scan using reviews_booking_id_key on reviews rv  (cost=0.15..8.17 rows=1 width=4) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: (booking_id = b.id)
+              Heap Fetches: 1
+              Index Searches: 1
+              Buffers: shared hit=2
+Planning Time: 0.032 ms
+Execution Time: 0.007 ms

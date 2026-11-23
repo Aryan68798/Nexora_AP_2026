@@ -1,0 +1,43 @@
+-- W18 | WRITE | Owner replies to a review that has no reply yet
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+-- WRITE queries run inside BEGIN ... ROLLBACK, so the data is unchanged
+
+-- Query:
+UPDATE reviews
+SET owner_reply = 'Thanks! Parking passes are now available at the front desk.',
+    replied_at = now(), updated_at = now()
+WHERE id = 2 AND owner_reply IS NULL
+RETURNING id, owner_reply;
+
+=== W18 run 1 ===
+Update on reviews  (cost=0.15..8.18 rows=1 width=54) (actual time=0.018..0.018 rows=1.00 loops=1)
+  Buffers: shared hit=5 read=1 written=1
+  ->  Index Scan using reviews_pkey on reviews  (cost=0.15..8.18 rows=1 width=54) (actual time=0.008..0.009 rows=1.00 loops=1)
+        Index Cond: (id = 2)
+        Filter: (owner_reply IS NULL)
+        Index Searches: 1
+        Buffers: shared hit=1 read=1 written=1
+Planning Time: 0.008 ms
+Execution Time: 0.024 ms
+
+=== W18 run 2 ===
+Update on reviews  (cost=0.15..8.18 rows=1 width=54) (actual time=0.011..0.012 rows=1.00 loops=1)
+  Buffers: shared hit=6
+  ->  Index Scan using reviews_pkey on reviews  (cost=0.15..8.18 rows=1 width=54) (actual time=0.003..0.003 rows=1.00 loops=1)
+        Index Cond: (id = 2)
+        Filter: (owner_reply IS NULL)
+        Index Searches: 1
+        Buffers: shared hit=2
+Planning Time: 0.009 ms
+Execution Time: 0.018 ms
+
+=== W18 run 3 ===
+Update on reviews  (cost=0.15..8.18 rows=1 width=54) (actual time=0.011..0.011 rows=1.00 loops=1)
+  Buffers: shared hit=6
+  ->  Index Scan using reviews_pkey on reviews  (cost=0.15..8.18 rows=1 width=54) (actual time=0.003..0.003 rows=1.00 loops=1)
+        Index Cond: (id = 2)
+        Filter: (owner_reply IS NULL)
+        Index Searches: 1
+        Buffers: shared hit=2
+Planning Time: 0.009 ms
+Execution Time: 0.017 ms

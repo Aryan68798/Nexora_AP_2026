@@ -1,0 +1,39 @@
+-- W8 | WRITE | Owner changes the hourly price
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+-- WRITE queries run inside BEGIN ... ROLLBACK, so the data is unchanged
+
+-- Query:
+UPDATE spaces
+SET price_per_hour = ROUND(price_per_hour * 1.10, 2), updated_at = now()
+WHERE slug = 'koramangala-12-seat-boardroom'
+RETURNING title, price_per_hour;
+
+=== W8 run 1 ===
+Update on spaces  (cost=0.14..8.18 rows=1 width=30) (actual time=0.028..0.028 rows=1.00 loops=1)
+  Buffers: shared hit=5
+  ->  Index Scan using spaces_slug_key on spaces  (cost=0.14..8.18 rows=1 width=30) (actual time=0.002..0.002 rows=1.00 loops=1)
+        Index Cond: (slug = 'koramangala-12-seat-boardroom'::text)
+        Index Searches: 1
+        Buffers: shared hit=2
+Planning Time: 0.011 ms
+Execution Time: 0.032 ms
+
+=== W8 run 2 ===
+Update on spaces  (cost=0.14..8.18 rows=1 width=30) (actual time=0.027..0.028 rows=1.00 loops=1)
+  Buffers: shared hit=5
+  ->  Index Scan using spaces_slug_key on spaces  (cost=0.14..8.18 rows=1 width=30) (actual time=0.002..0.002 rows=1.00 loops=1)
+        Index Cond: (slug = 'koramangala-12-seat-boardroom'::text)
+        Index Searches: 1
+        Buffers: shared hit=2
+Planning Time: 0.010 ms
+Execution Time: 0.031 ms
+
+=== W8 run 3 ===
+Update on spaces  (cost=0.14..8.18 rows=1 width=30) (actual time=0.031..0.031 rows=1.00 loops=1)
+  Buffers: shared hit=5
+  ->  Index Scan using spaces_slug_key on spaces  (cost=0.14..8.18 rows=1 width=30) (actual time=0.007..0.007 rows=1.00 loops=1)
+        Index Cond: (slug = 'koramangala-12-seat-boardroom'::text)
+        Index Searches: 1
+        Buffers: shared hit=2
+Planning Time: 0.013 ms
+Execution Time: 0.035 ms

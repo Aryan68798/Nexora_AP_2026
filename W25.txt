@@ -1,0 +1,39 @@
+-- W25 | WRITE | Deactivate a user account
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+-- WRITE queries run inside BEGIN ... ROLLBACK, so the data is unchanged
+
+-- Query:
+UPDATE users
+SET is_active = false, updated_at = now()
+WHERE email = 'kabir.khan@example.com'
+RETURNING id, is_active;
+
+=== W25 run 1 ===
+Update on users  (cost=0.15..8.17 rows=1 width=15) (actual time=0.007..0.007 rows=1.00 loops=1)
+  Buffers: shared hit=5
+  ->  Index Scan using users_email_key on users  (cost=0.15..8.17 rows=1 width=15) (actual time=0.001..0.002 rows=1.00 loops=1)
+        Index Cond: (email = 'kabir.khan@example.com'::text)
+        Index Searches: 1
+        Buffers: shared hit=2
+Planning Time: 0.013 ms
+Execution Time: 0.013 ms
+
+=== W25 run 2 ===
+Update on users  (cost=0.15..8.17 rows=1 width=15) (actual time=0.005..0.006 rows=1.00 loops=1)
+  Buffers: shared hit=5
+  ->  Index Scan using users_email_key on users  (cost=0.15..8.17 rows=1 width=15) (actual time=0.001..0.001 rows=1.00 loops=1)
+        Index Cond: (email = 'kabir.khan@example.com'::text)
+        Index Searches: 1
+        Buffers: shared hit=2
+Planning Time: 0.009 ms
+Execution Time: 0.011 ms
+
+=== W25 run 3 ===
+Update on users  (cost=0.15..8.17 rows=1 width=15) (actual time=0.006..0.006 rows=1.00 loops=1)
+  Buffers: shared hit=5
+  ->  Index Scan using users_email_key on users  (cost=0.15..8.17 rows=1 width=15) (actual time=0.001..0.001 rows=1.00 loops=1)
+        Index Cond: (email = 'kabir.khan@example.com'::text)
+        Index Searches: 1
+        Buffers: shared hit=2
+Planning Time: 0.014 ms
+Execution Time: 0.012 ms

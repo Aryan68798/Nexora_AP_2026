@@ -1,0 +1,81 @@
+-- W22 | WRITE | Send a message
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+-- WRITE queries run inside BEGIN ... ROLLBACK, so the data is unchanged
+
+-- Query:
+INSERT INTO messages (conversation_id, sender_id, body)
+SELECT cv.id, cv.renter_id, 'Is the cyclorama wall available next Saturday?'
+FROM conversations cv
+JOIN spaces s ON s.id = cv.space_id
+WHERE s.slug = 'bandra-natural-light-studio'
+  AND cv.renter_id = (SELECT id FROM users WHERE email = 'sneha.kulkarni@example.com')
+RETURNING id, created_at;
+
+=== W22 run 1 ===
+Insert on messages  (cost=8.46..26.52 rows=1 width=60) (actual time=0.056..0.056 rows=1.00 loops=1)
+  Buffers: shared hit=21 read=2 dirtied=4 written=2
+  InitPlan 1
+    ->  Index Scan using users_email_key on users  (cost=0.15..8.17 rows=1 width=4) (actual time=0.001..0.001 rows=1.00 loops=1)
+          Index Cond: (email = 'sneha.kulkarni@example.com'::text)
+          Index Searches: 1
+          Buffers: shared hit=2
+  ->  Nested Loop  (cost=0.30..18.35 rows=1 width=60) (actual time=0.044..0.045 rows=1.00 loops=1)
+        Buffers: shared hit=19 read=1 dirtied=1 written=1
+        ->  Index Scan using spaces_slug_key on spaces s  (cost=0.14..8.16 rows=1 width=4) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: (slug = 'bandra-natural-light-studio'::text)
+              Index Searches: 1
+              Buffers: shared hit=2
+        ->  Index Scan using conversations_space_id_renter_id_key on conversations cv  (cost=0.15..8.17 rows=1 width=12) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: ((space_id = s.id) AND (renter_id = (InitPlan 1).col1))
+              Index Searches: 1
+              Buffers: shared hit=2
+Planning Time: 0.043 ms
+Trigger for constraint messages_conversation_id_fkey: time=0.026 calls=1
+Trigger for constraint messages_sender_id_fkey: time=0.024 calls=1
+Execution Time: 0.113 ms
+
+=== W22 run 2 ===
+Insert on messages  (cost=8.46..26.52 rows=1 width=60) (actual time=0.084..0.085 rows=1.00 loops=1)
+  Buffers: shared hit=23
+  InitPlan 1
+    ->  Index Scan using users_email_key on users  (cost=0.15..8.17 rows=1 width=4) (actual time=0.001..0.001 rows=1.00 loops=1)
+          Index Cond: (email = 'sneha.kulkarni@example.com'::text)
+          Index Searches: 1
+          Buffers: shared hit=2
+  ->  Nested Loop  (cost=0.30..18.35 rows=1 width=60) (actual time=0.015..0.015 rows=1.00 loops=1)
+        Buffers: shared hit=20
+        ->  Index Scan using spaces_slug_key on spaces s  (cost=0.14..8.16 rows=1 width=4) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: (slug = 'bandra-natural-light-studio'::text)
+              Index Searches: 1
+              Buffers: shared hit=2
+        ->  Index Scan using conversations_space_id_renter_id_key on conversations cv  (cost=0.15..8.17 rows=1 width=12) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: ((space_id = s.id) AND (renter_id = (InitPlan 1).col1))
+              Index Searches: 1
+              Buffers: shared hit=2
+Planning Time: 0.051 ms
+Trigger for constraint messages_conversation_id_fkey: time=0.047 calls=1
+Trigger for constraint messages_sender_id_fkey: time=0.016 calls=1
+Execution Time: 0.154 ms
+
+=== W22 run 3 ===
+Insert on messages  (cost=8.46..26.52 rows=1 width=60) (actual time=0.021..0.022 rows=1.00 loops=1)
+  Buffers: shared hit=23
+  InitPlan 1
+    ->  Index Scan using users_email_key on users  (cost=0.15..8.17 rows=1 width=4) (actual time=0.001..0.001 rows=1.00 loops=1)
+          Index Cond: (email = 'sneha.kulkarni@example.com'::text)
+          Index Searches: 1
+          Buffers: shared hit=2
+  ->  Nested Loop  (cost=0.30..18.35 rows=1 width=60) (actual time=0.016..0.017 rows=1.00 loops=1)
+        Buffers: shared hit=20
+        ->  Index Scan using spaces_slug_key on spaces s  (cost=0.14..8.16 rows=1 width=4) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: (slug = 'bandra-natural-light-studio'::text)
+              Index Searches: 1
+              Buffers: shared hit=2
+        ->  Index Scan using conversations_space_id_renter_id_key on conversations cv  (cost=0.15..8.17 rows=1 width=12) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: ((space_id = s.id) AND (renter_id = (InitPlan 1).col1))
+              Index Searches: 1
+              Buffers: shared hit=2
+Planning Time: 0.044 ms
+Trigger for constraint messages_conversation_id_fkey: time=0.015 calls=1
+Trigger for constraint messages_sender_id_fkey: time=0.018 calls=1
+Execution Time: 0.061 ms

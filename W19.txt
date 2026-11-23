@@ -1,0 +1,76 @@
+-- W19 | WRITE | Renter saves a space to favourites (ignore if already saved)
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+-- WRITE queries run inside BEGIN ... ROLLBACK, so the data is unchanged
+
+-- Query:
+INSERT INTO favourites (user_id, space_id)
+SELECT u.id, s.id
+FROM users u, spaces s
+WHERE u.email = 'arjun.nair@example.com' AND s.slug = 'koramangala-12-seat-boardroom'
+ON CONFLICT (user_id, space_id) DO NOTHING;
+
+=== W19 run 1 ===
+Insert on favourites  (cost=0.29..16.35 rows=0 width=0) (actual time=0.017..0.017 rows=0.00 loops=1)
+  Conflict Resolution: NOTHING
+  Conflict Arbiter Indexes: favourites_pkey
+  Tuples Inserted: 1
+  Conflicting Tuples: 0
+  Buffers: shared hit=9 read=1 dirtied=2 written=1
+  ->  Nested Loop  (cost=0.29..16.35 rows=1 width=16) (actual time=0.002..0.003 rows=1.00 loops=1)
+        Buffers: shared hit=4
+        ->  Index Scan using users_email_key on users u  (cost=0.15..8.17 rows=1 width=4) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: (email = 'arjun.nair@example.com'::text)
+              Index Searches: 1
+              Buffers: shared hit=2
+        ->  Index Scan using spaces_slug_key on spaces s  (cost=0.14..8.16 rows=1 width=4) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: (slug = 'koramangala-12-seat-boardroom'::text)
+              Index Searches: 1
+              Buffers: shared hit=2
+Planning Time: 0.020 ms
+Trigger for constraint favourites_user_id_fkey: time=0.026 calls=1
+Trigger for constraint favourites_space_id_fkey: time=0.021 calls=1
+Execution Time: 0.067 ms
+
+=== W19 run 2 ===
+Insert on favourites  (cost=0.29..16.35 rows=0 width=0) (actual time=0.012..0.013 rows=0.00 loops=1)
+  Conflict Resolution: NOTHING
+  Conflict Arbiter Indexes: favourites_pkey
+  Tuples Inserted: 1
+  Conflicting Tuples: 0
+  Buffers: shared hit=10
+  ->  Nested Loop  (cost=0.29..16.35 rows=1 width=16) (actual time=0.002..0.002 rows=1.00 loops=1)
+        Buffers: shared hit=4
+        ->  Index Scan using users_email_key on users u  (cost=0.15..8.17 rows=1 width=4) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: (email = 'arjun.nair@example.com'::text)
+              Index Searches: 1
+              Buffers: shared hit=2
+        ->  Index Scan using spaces_slug_key on spaces s  (cost=0.14..8.16 rows=1 width=4) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: (slug = 'koramangala-12-seat-boardroom'::text)
+              Index Searches: 1
+              Buffers: shared hit=2
+Planning Time: 0.024 ms
+Trigger for constraint favourites_user_id_fkey: time=0.020 calls=1
+Trigger for constraint favourites_space_id_fkey: time=0.022 calls=1
+Execution Time: 0.058 ms
+
+=== W19 run 3 ===
+Insert on favourites  (cost=0.29..16.35 rows=0 width=0) (actual time=0.012..0.012 rows=0.00 loops=1)
+  Conflict Resolution: NOTHING
+  Conflict Arbiter Indexes: favourites_pkey
+  Tuples Inserted: 1
+  Conflicting Tuples: 0
+  Buffers: shared hit=10
+  ->  Nested Loop  (cost=0.29..16.35 rows=1 width=16) (actual time=0.002..0.002 rows=1.00 loops=1)
+        Buffers: shared hit=4
+        ->  Index Scan using users_email_key on users u  (cost=0.15..8.17 rows=1 width=4) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: (email = 'arjun.nair@example.com'::text)
+              Index Searches: 1
+              Buffers: shared hit=2
+        ->  Index Scan using spaces_slug_key on spaces s  (cost=0.14..8.16 rows=1 width=4) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: (slug = 'koramangala-12-seat-boardroom'::text)
+              Index Searches: 1
+              Buffers: shared hit=2
+Planning Time: 0.020 ms
+Trigger for constraint favourites_user_id_fkey: time=0.017 calls=1
+Trigger for constraint favourites_space_id_fkey: time=0.019 calls=1
+Execution Time: 0.052 ms

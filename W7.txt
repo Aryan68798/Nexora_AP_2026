@@ -1,0 +1,58 @@
+-- W7 | WRITE | Admin verifies an owner
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+-- WRITE queries run inside BEGIN ... ROLLBACK, so the data is unchanged
+
+-- Query:
+UPDATE owner_profiles
+SET verification_status = 'VERIFIED', verified_at = now(), updated_at = now()
+WHERE verification_status = 'PENDING'
+  AND user_id = (SELECT id FROM users WHERE email = 'vikram.singh@example.com')
+RETURNING id, verification_status;
+
+=== W7 run 1 ===
+Update on owner_profiles  (cost=8.31..16.35 rows=1 width=26) (actual time=0.007..0.007 rows=1.00 loops=1)
+  Buffers: shared hit=7
+  InitPlan 1
+    ->  Index Scan using users_email_key on users  (cost=0.15..8.17 rows=1 width=4) (actual time=0.001..0.001 rows=1.00 loops=1)
+          Index Cond: (email = 'vikram.singh@example.com'::text)
+          Index Searches: 1
+          Buffers: shared hit=2
+  ->  Index Scan using owner_profiles_user_id_key on owner_profiles  (cost=0.15..8.18 rows=1 width=26) (actual time=0.003..0.003 rows=1.00 loops=1)
+        Index Cond: (user_id = (InitPlan 1).col1)
+        Filter: (verification_status = 'PENDING'::"VerificationStatus")
+        Index Searches: 1
+        Buffers: shared hit=4
+Planning Time: 0.016 ms
+Execution Time: 0.014 ms
+
+=== W7 run 2 ===
+Update on owner_profiles  (cost=8.31..16.35 rows=1 width=26) (actual time=0.009..0.010 rows=1.00 loops=1)
+  Buffers: shared hit=7
+  InitPlan 1
+    ->  Index Scan using users_email_key on users  (cost=0.15..8.17 rows=1 width=4) (actual time=0.001..0.001 rows=1.00 loops=1)
+          Index Cond: (email = 'vikram.singh@example.com'::text)
+          Index Searches: 1
+          Buffers: shared hit=2
+  ->  Index Scan using owner_profiles_user_id_key on owner_profiles  (cost=0.15..8.18 rows=1 width=26) (actual time=0.003..0.003 rows=1.00 loops=1)
+        Index Cond: (user_id = (InitPlan 1).col1)
+        Filter: (verification_status = 'PENDING'::"VerificationStatus")
+        Index Searches: 1
+        Buffers: shared hit=4
+Planning Time: 0.018 ms
+Execution Time: 0.017 ms
+
+=== W7 run 3 ===
+Update on owner_profiles  (cost=8.31..16.35 rows=1 width=26) (actual time=0.005..0.005 rows=1.00 loops=1)
+  Buffers: shared hit=7
+  InitPlan 1
+    ->  Index Scan using users_email_key on users  (cost=0.15..8.17 rows=1 width=4) (actual time=0.001..0.001 rows=1.00 loops=1)
+          Index Cond: (email = 'vikram.singh@example.com'::text)
+          Index Searches: 1
+          Buffers: shared hit=2
+  ->  Index Scan using owner_profiles_user_id_key on owner_profiles  (cost=0.15..8.18 rows=1 width=26) (actual time=0.002..0.002 rows=1.00 loops=1)
+        Index Cond: (user_id = (InitPlan 1).col1)
+        Filter: (verification_status = 'PENDING'::"VerificationStatus")
+        Index Searches: 1
+        Buffers: shared hit=4
+Planning Time: 0.015 ms
+Execution Time: 0.011 ms

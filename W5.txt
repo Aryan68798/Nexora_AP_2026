@@ -1,0 +1,51 @@
+-- W5 | WRITE | Owner submits the listing for review
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+-- WRITE queries run inside BEGIN ... ROLLBACK, so the data is unchanged
+
+-- Query:
+UPDATE spaces
+SET status = 'PENDING_REVIEW', updated_at = now()
+WHERE slug = 'hsr-small-meeting-room' AND status = 'DRAFT'
+RETURNING id, status;
+
+=== W5 run 1 ===
+Update on spaces  (cost=0.14..8.17 rows=1 width=18) (actual time=0.044..0.045 rows=1.00 loops=1)
+  Buffers: shared hit=23
+  ->  Index Scan using spaces_status_idx on spaces  (cost=0.14..8.17 rows=1 width=18) (actual time=0.002..0.003 rows=1.00 loops=1)
+        Index Cond: (status = 'DRAFT'::"SpaceStatus")
+        Filter: (slug = 'hsr-small-meeting-room'::text)
+        Rows Removed by Filter: 1
+        Index Searches: 1
+        Buffers: shared hit=3
+Planning Time: 0.016 ms
+Trigger for constraint spaces_owner_id_fkey: time=0.016 calls=1
+Trigger for constraint spaces_city_id_fkey: time=0.010 calls=1
+Execution Time: 0.178 ms
+
+=== W5 run 2 ===
+Update on spaces  (cost=0.14..8.17 rows=1 width=18) (actual time=0.045..0.045 rows=1.00 loops=1)
+  Buffers: shared hit=23
+  ->  Index Scan using spaces_status_idx on spaces  (cost=0.14..8.17 rows=1 width=18) (actual time=0.002..0.002 rows=1.00 loops=1)
+        Index Cond: (status = 'DRAFT'::"SpaceStatus")
+        Filter: (slug = 'hsr-small-meeting-room'::text)
+        Rows Removed by Filter: 1
+        Index Searches: 1
+        Buffers: shared hit=3
+Planning Time: 0.013 ms
+Trigger for constraint spaces_owner_id_fkey: time=0.016 calls=1
+Trigger for constraint spaces_city_id_fkey: time=0.009 calls=1
+Execution Time: 0.102 ms
+
+=== W5 run 3 ===
+Update on spaces  (cost=0.14..8.17 rows=1 width=18) (actual time=0.041..0.042 rows=1.00 loops=1)
+  Buffers: shared hit=23
+  ->  Index Scan using spaces_status_idx on spaces  (cost=0.14..8.17 rows=1 width=18) (actual time=0.002..0.002 rows=1.00 loops=1)
+        Index Cond: (status = 'DRAFT'::"SpaceStatus")
+        Filter: (slug = 'hsr-small-meeting-room'::text)
+        Rows Removed by Filter: 1
+        Index Searches: 1
+        Buffers: shared hit=3
+Planning Time: 0.015 ms
+Trigger for constraint spaces_owner_id_fkey: time=0.014 calls=1
+Trigger for constraint spaces_city_id_fkey: time=0.010 calls=1
+Execution Time: 0.096 ms

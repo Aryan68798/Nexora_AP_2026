@@ -1,0 +1,95 @@
+-- W13 | WRITE | Owner rejects a pending booking request
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+-- WRITE queries run inside BEGIN ... ROLLBACK, so the data is unchanged
+
+-- Query:
+UPDATE bookings
+SET status = 'REJECTED', updated_at = now()
+WHERE status = 'PENDING'
+  AND id = (SELECT b.id FROM bookings b
+            JOIN spaces s ON s.id = b.space_id
+            WHERE s.slug = 'koramangala-12-seat-boardroom' AND b.status = 'PENDING'
+              AND b.booking_code <> 'SC-DEMO-00001'
+            LIMIT 1)
+RETURNING booking_code, status;
+
+=== W13 run 1 ===
+Update on bookings  (cost=16.48..24.51 rows=1 width=18) (actual time=0.022..0.023 rows=1.00 loops=1)
+  Buffers: shared hit=19
+  InitPlan 1
+    ->  Limit  (cost=0.28..16.33 rows=1 width=4) (actual time=0.003..0.003 rows=1.00 loops=1)
+          Buffers: shared hit=4
+          ->  Nested Loop  (cost=0.28..16.33 rows=1 width=4) (actual time=0.002..0.002 rows=1.00 loops=1)
+                Buffers: shared hit=4
+                ->  Index Scan using spaces_slug_key on spaces s  (cost=0.14..8.16 rows=1 width=4) (actual time=0.001..0.001 rows=1.00 loops=1)
+                      Index Cond: (slug = 'koramangala-12-seat-boardroom'::text)
+                      Index Searches: 1
+                      Buffers: shared hit=2
+                ->  Index Scan using bookings_no_overlap on bookings b  (cost=0.14..8.16 rows=1 width=8) (actual time=0.001..0.001 rows=1.00 loops=1)
+                      Index Cond: (space_id = s.id)
+                      Filter: ((booking_code <> 'SC-DEMO-00001'::text) AND (status = 'PENDING'::"BookingStatus"))
+                      Index Searches: 1
+                      Buffers: shared hit=2
+  ->  Index Scan using bookings_status_idx on bookings  (cost=0.15..8.18 rows=1 width=18) (actual time=0.004..0.004 rows=1.00 loops=1)
+        Index Cond: (status = 'PENDING'::"BookingStatus")
+        Filter: (id = (InitPlan 1).col1)
+        Index Searches: 1
+        Buffers: shared hit=7
+Planning:
+  Buffers: shared hit=1 read=1 written=1
+Planning Time: 0.061 ms
+Execution Time: 0.030 ms
+
+=== W13 run 2 ===
+Update on bookings  (cost=16.48..24.51 rows=1 width=18) (actual time=0.073..0.074 rows=1.00 loops=1)
+  Buffers: shared hit=19
+  InitPlan 1
+    ->  Limit  (cost=0.28..16.33 rows=1 width=4) (actual time=0.002..0.003 rows=1.00 loops=1)
+          Buffers: shared hit=4
+          ->  Nested Loop  (cost=0.28..16.33 rows=1 width=4) (actual time=0.002..0.002 rows=1.00 loops=1)
+                Buffers: shared hit=4
+                ->  Index Scan using spaces_slug_key on spaces s  (cost=0.14..8.16 rows=1 width=4) (actual time=0.001..0.001 rows=1.00 loops=1)
+                      Index Cond: (slug = 'koramangala-12-seat-boardroom'::text)
+                      Index Searches: 1
+                      Buffers: shared hit=2
+                ->  Index Scan using bookings_no_overlap on bookings b  (cost=0.14..8.16 rows=1 width=8) (actual time=0.001..0.001 rows=1.00 loops=1)
+                      Index Cond: (space_id = s.id)
+                      Filter: ((booking_code <> 'SC-DEMO-00001'::text) AND (status = 'PENDING'::"BookingStatus"))
+                      Index Searches: 1
+                      Buffers: shared hit=2
+  ->  Index Scan using bookings_status_idx on bookings  (cost=0.15..8.18 rows=1 width=18) (actual time=0.004..0.004 rows=1.00 loops=1)
+        Index Cond: (status = 'PENDING'::"BookingStatus")
+        Filter: (id = (InitPlan 1).col1)
+        Index Searches: 1
+        Buffers: shared hit=7
+Planning:
+  Buffers: shared hit=2
+Planning Time: 0.054 ms
+Execution Time: 0.080 ms
+
+=== W13 run 3 ===
+Update on bookings  (cost=16.48..24.51 rows=1 width=18) (actual time=0.027..0.028 rows=1.00 loops=1)
+  Buffers: shared hit=19
+  InitPlan 1
+    ->  Limit  (cost=0.28..16.33 rows=1 width=4) (actual time=0.003..0.003 rows=1.00 loops=1)
+          Buffers: shared hit=4
+          ->  Nested Loop  (cost=0.28..16.33 rows=1 width=4) (actual time=0.003..0.003 rows=1.00 loops=1)
+                Buffers: shared hit=4
+                ->  Index Scan using spaces_slug_key on spaces s  (cost=0.14..8.16 rows=1 width=4) (actual time=0.001..0.001 rows=1.00 loops=1)
+                      Index Cond: (slug = 'koramangala-12-seat-boardroom'::text)
+                      Index Searches: 1
+                      Buffers: shared hit=2
+                ->  Index Scan using bookings_no_overlap on bookings b  (cost=0.14..8.16 rows=1 width=8) (actual time=0.002..0.002 rows=1.00 loops=1)
+                      Index Cond: (space_id = s.id)
+                      Filter: ((booking_code <> 'SC-DEMO-00001'::text) AND (status = 'PENDING'::"BookingStatus"))
+                      Index Searches: 1
+                      Buffers: shared hit=2
+  ->  Index Scan using bookings_status_idx on bookings  (cost=0.15..8.18 rows=1 width=18) (actual time=0.005..0.005 rows=1.00 loops=1)
+        Index Cond: (status = 'PENDING'::"BookingStatus")
+        Filter: (id = (InitPlan 1).col1)
+        Index Searches: 1
+        Buffers: shared hit=7
+Planning:
+  Buffers: shared hit=2
+Planning Time: 0.049 ms
+Execution Time: 0.035 ms

@@ -1,0 +1,77 @@
+-- W21 | WRITE | Start a conversation with an owner (or reuse the existing one)
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+-- WRITE queries run inside BEGIN ... ROLLBACK, so the data is unchanged
+
+-- Query:
+INSERT INTO conversations (space_id, renter_id, updated_at)
+SELECT s.id, u.id, now()
+FROM spaces s, users u
+WHERE s.slug = 'bandra-natural-light-studio' AND u.email = 'sneha.kulkarni@example.com'
+ON CONFLICT (space_id, renter_id) DO UPDATE SET updated_at = now()
+RETURNING id;
+
+=== W21 run 1 ===
+Insert on conversations  (cost=0.29..16.36 rows=1 width=28) (actual time=0.067..0.067 rows=1.00 loops=1)
+  Conflict Resolution: UPDATE
+  Conflict Arbiter Indexes: conversations_space_id_renter_id_key
+  Tuples Inserted: 1
+  Conflicting Tuples: 0
+  Buffers: shared hit=22 read=3 dirtied=4 written=3
+  ->  Nested Loop  (cost=0.29..16.36 rows=1 width=28) (actual time=0.046..0.047 rows=1.00 loops=1)
+        Buffers: shared hit=17 read=1 dirtied=1 written=1
+        ->  Index Scan using spaces_slug_key on spaces s  (cost=0.14..8.16 rows=1 width=4) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: (slug = 'bandra-natural-light-studio'::text)
+              Index Searches: 1
+              Buffers: shared hit=2
+        ->  Index Scan using users_email_key on users u  (cost=0.15..8.17 rows=1 width=4) (actual time=0.000..0.001 rows=1.00 loops=1)
+              Index Cond: (email = 'sneha.kulkarni@example.com'::text)
+              Index Searches: 1
+              Buffers: shared hit=2
+Planning Time: 0.021 ms
+Trigger for constraint conversations_space_id_fkey: time=0.020 calls=1
+Trigger for constraint conversations_renter_id_fkey: time=0.017 calls=1
+Execution Time: 0.111 ms
+
+=== W21 run 2 ===
+Insert on conversations  (cost=0.29..16.36 rows=1 width=28) (actual time=0.029..0.030 rows=1.00 loops=1)
+  Conflict Resolution: UPDATE
+  Conflict Arbiter Indexes: conversations_space_id_renter_id_key
+  Tuples Inserted: 1
+  Conflicting Tuples: 0
+  Buffers: shared hit=25
+  ->  Nested Loop  (cost=0.29..16.36 rows=1 width=28) (actual time=0.017..0.017 rows=1.00 loops=1)
+        Buffers: shared hit=18
+        ->  Index Scan using spaces_slug_key on spaces s  (cost=0.14..8.16 rows=1 width=4) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: (slug = 'bandra-natural-light-studio'::text)
+              Index Searches: 1
+              Buffers: shared hit=2
+        ->  Index Scan using users_email_key on users u  (cost=0.15..8.17 rows=1 width=4) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: (email = 'sneha.kulkarni@example.com'::text)
+              Index Searches: 1
+              Buffers: shared hit=2
+Planning Time: 0.024 ms
+Trigger for constraint conversations_space_id_fkey: time=0.020 calls=1
+Trigger for constraint conversations_renter_id_fkey: time=0.017 calls=1
+Execution Time: 0.075 ms
+
+=== W21 run 3 ===
+Insert on conversations  (cost=0.29..16.36 rows=1 width=28) (actual time=0.029..0.030 rows=1.00 loops=1)
+  Conflict Resolution: UPDATE
+  Conflict Arbiter Indexes: conversations_space_id_renter_id_key
+  Tuples Inserted: 1
+  Conflicting Tuples: 0
+  Buffers: shared hit=25
+  ->  Nested Loop  (cost=0.29..16.36 rows=1 width=28) (actual time=0.020..0.020 rows=1.00 loops=1)
+        Buffers: shared hit=18
+        ->  Index Scan using spaces_slug_key on spaces s  (cost=0.14..8.16 rows=1 width=4) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: (slug = 'bandra-natural-light-studio'::text)
+              Index Searches: 1
+              Buffers: shared hit=2
+        ->  Index Scan using users_email_key on users u  (cost=0.15..8.17 rows=1 width=4) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: (email = 'sneha.kulkarni@example.com'::text)
+              Index Searches: 1
+              Buffers: shared hit=2
+Planning Time: 0.019 ms
+Trigger for constraint conversations_space_id_fkey: time=0.020 calls=1
+Trigger for constraint conversations_renter_id_fkey: time=0.017 calls=1
+Execution Time: 0.075 ms

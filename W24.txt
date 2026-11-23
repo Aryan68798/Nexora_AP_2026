@@ -1,0 +1,78 @@
+-- W24 | WRITE | Owner deletes a listing that was never booked
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+-- WRITE queries run inside BEGIN ... ROLLBACK, so the data is unchanged
+
+-- Query:
+DELETE FROM spaces
+WHERE slug = 'kp-coworking-pod'
+  AND NOT EXISTS (SELECT 1 FROM bookings b WHERE b.space_id = spaces.id)
+RETURNING id, title;
+
+=== W24 run 1 ===
+Delete on spaces  (cost=0.29..20.85 rows=1 width=12) (actual time=0.005..0.005 rows=1.00 loops=1)
+  Buffers: shared hit=6
+  ->  Nested Loop Anti Join  (cost=0.29..20.85 rows=1 width=12) (actual time=0.002..0.002 rows=1.00 loops=1)
+        Buffers: shared hit=3
+        ->  Index Scan using spaces_slug_key on spaces  (cost=0.14..8.16 rows=1 width=10) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: (slug = 'kp-coworking-pod'::text)
+              Index Searches: 1
+              Buffers: shared hit=2
+        ->  Index Scan using bookings_space_id_starts_at_ends_at_idx on bookings b  (cost=0.15..8.17 rows=1 width=10) (actual time=0.000..0.000 rows=0.00 loops=1)
+              Index Cond: (space_id = spaces.id)
+              Index Searches: 1
+              Buffers: shared hit=1
+Planning Time: 0.026 ms
+Trigger for constraint space_images_space_id_fkey: time=0.043 calls=1
+Trigger for constraint space_amenities_space_id_fkey: time=0.023 calls=1
+Trigger for constraint availability_rules_space_id_fkey: time=0.030 calls=1
+Trigger for constraint blocked_slots_space_id_fkey: time=0.018 calls=1
+Trigger for constraint bookings_space_id_fkey: time=0.018 calls=1
+Trigger for constraint favourites_space_id_fkey: time=0.012 calls=1
+Trigger for constraint conversations_space_id_fkey: time=0.013 calls=1
+Execution Time: 0.166 ms
+
+=== W24 run 2 ===
+Delete on spaces  (cost=0.29..20.85 rows=1 width=12) (actual time=0.006..0.007 rows=1.00 loops=1)
+  Buffers: shared hit=6
+  ->  Nested Loop Anti Join  (cost=0.29..20.85 rows=1 width=12) (actual time=0.002..0.003 rows=1.00 loops=1)
+        Buffers: shared hit=3
+        ->  Index Scan using spaces_slug_key on spaces  (cost=0.14..8.16 rows=1 width=10) (actual time=0.002..0.002 rows=1.00 loops=1)
+              Index Cond: (slug = 'kp-coworking-pod'::text)
+              Index Searches: 1
+              Buffers: shared hit=2
+        ->  Index Scan using bookings_space_id_starts_at_ends_at_idx on bookings b  (cost=0.15..8.17 rows=1 width=10) (actual time=0.001..0.001 rows=0.00 loops=1)
+              Index Cond: (space_id = spaces.id)
+              Index Searches: 1
+              Buffers: shared hit=1
+Planning Time: 0.033 ms
+Trigger for constraint space_images_space_id_fkey: time=0.029 calls=1
+Trigger for constraint space_amenities_space_id_fkey: time=0.021 calls=1
+Trigger for constraint availability_rules_space_id_fkey: time=0.022 calls=1
+Trigger for constraint blocked_slots_space_id_fkey: time=0.020 calls=1
+Trigger for constraint bookings_space_id_fkey: time=0.024 calls=1
+Trigger for constraint favourites_space_id_fkey: time=0.010 calls=1
+Trigger for constraint conversations_space_id_fkey: time=0.012 calls=1
+Execution Time: 0.151 ms
+
+=== W24 run 3 ===
+Delete on spaces  (cost=0.29..20.85 rows=1 width=12) (actual time=0.005..0.005 rows=1.00 loops=1)
+  Buffers: shared hit=6
+  ->  Nested Loop Anti Join  (cost=0.29..20.85 rows=1 width=12) (actual time=0.002..0.002 rows=1.00 loops=1)
+        Buffers: shared hit=3
+        ->  Index Scan using spaces_slug_key on spaces  (cost=0.14..8.16 rows=1 width=10) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: (slug = 'kp-coworking-pod'::text)
+              Index Searches: 1
+              Buffers: shared hit=2
+        ->  Index Scan using bookings_space_id_starts_at_ends_at_idx on bookings b  (cost=0.15..8.17 rows=1 width=10) (actual time=0.000..0.000 rows=0.00 loops=1)
+              Index Cond: (space_id = spaces.id)
+              Index Searches: 1
+              Buffers: shared hit=1
+Planning Time: 0.031 ms
+Trigger for constraint space_images_space_id_fkey: time=0.020 calls=1
+Trigger for constraint space_amenities_space_id_fkey: time=0.018 calls=1
+Trigger for constraint availability_rules_space_id_fkey: time=0.017 calls=1
+Trigger for constraint blocked_slots_space_id_fkey: time=0.015 calls=1
+Trigger for constraint bookings_space_id_fkey: time=0.017 calls=1
+Trigger for constraint favourites_space_id_fkey: time=0.010 calls=1
+Trigger for constraint conversations_space_id_fkey: time=0.012 calls=1
+Execution Time: 0.117 ms

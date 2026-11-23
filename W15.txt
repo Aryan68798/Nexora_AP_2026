@@ -1,0 +1,86 @@
+-- W15 | WRITE | Refund the cancelled booking
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+-- WRITE queries run inside BEGIN ... ROLLBACK, so the data is unchanged
+
+-- Query:
+INSERT INTO payments (booking_id, kind, method, status, amount, provider_ref, processed_at, updated_at)
+SELECT p.booking_id, 'REFUND', p.method, 'SUCCEEDED', p.amount, 'rfnd_DEMO0001', now(), now()
+FROM payments p
+JOIN bookings b ON b.id = p.booking_id
+WHERE b.booking_code = 'SC-DEMO-00001' AND p.kind = 'CHARGE' AND p.status = 'SUCCEEDED'
+RETURNING id, kind, amount;
+
+=== W15 run 1 ===
+Insert on payments  (cost=4.32..19.49 rows=1 width=108) (actual time=0.040..0.041 rows=1.00 loops=1)
+  Buffers: shared hit=21
+  ->  Nested Loop  (cost=4.32..19.49 rows=1 width=108) (actual time=0.009..0.009 rows=1.00 loops=1)
+        Join Filter: (p.booking_id = b.id)
+        Rows Removed by Join Filter: 5
+        Buffers: shared hit=15
+        ->  Bitmap Heap Scan on payments p  (cost=4.17..11.29 rows=1 width=24) (actual time=0.003..0.003 rows=6.00 loops=1)
+              Recheck Cond: (status = 'SUCCEEDED'::"PaymentStatus")
+              Filter: (kind = 'CHARGE'::"PaymentKind")
+              Rows Removed by Filter: 1
+              Heap Blocks: exact=1
+              Buffers: shared hit=2
+              ->  Bitmap Index Scan on payments_status_idx  (cost=0.00..4.17 rows=3 width=0) (actual time=0.001..0.001 rows=13.00 loops=1)
+                    Index Cond: (status = 'SUCCEEDED'::"PaymentStatus")
+                    Index Searches: 1
+                    Buffers: shared hit=1
+        ->  Index Scan using bookings_booking_code_key on bookings b  (cost=0.15..8.17 rows=1 width=4) (actual time=0.001..0.001 rows=1.00 loops=6)
+              Index Cond: (booking_code = 'SC-DEMO-00001'::text)
+              Index Searches: 6
+              Buffers: shared hit=12
+Planning Time: 0.043 ms
+Trigger for constraint payments_booking_id_fkey: time=0.019 calls=1
+Execution Time: 0.067 ms
+
+=== W15 run 2 ===
+Insert on payments  (cost=4.32..19.49 rows=1 width=108) (actual time=0.015..0.016 rows=1.00 loops=1)
+  Buffers: shared hit=21
+  ->  Nested Loop  (cost=4.32..19.49 rows=1 width=108) (actual time=0.008..0.008 rows=1.00 loops=1)
+        Join Filter: (p.booking_id = b.id)
+        Rows Removed by Join Filter: 5
+        Buffers: shared hit=15
+        ->  Bitmap Heap Scan on payments p  (cost=4.17..11.29 rows=1 width=24) (actual time=0.002..0.003 rows=6.00 loops=1)
+              Recheck Cond: (status = 'SUCCEEDED'::"PaymentStatus")
+              Filter: (kind = 'CHARGE'::"PaymentKind")
+              Rows Removed by Filter: 1
+              Heap Blocks: exact=1
+              Buffers: shared hit=2
+              ->  Bitmap Index Scan on payments_status_idx  (cost=0.00..4.17 rows=3 width=0) (actual time=0.001..0.001 rows=15.00 loops=1)
+                    Index Cond: (status = 'SUCCEEDED'::"PaymentStatus")
+                    Index Searches: 1
+                    Buffers: shared hit=1
+        ->  Index Scan using bookings_booking_code_key on bookings b  (cost=0.15..8.17 rows=1 width=4) (actual time=0.000..0.000 rows=1.00 loops=6)
+              Index Cond: (booking_code = 'SC-DEMO-00001'::text)
+              Index Searches: 6
+              Buffers: shared hit=12
+Planning Time: 0.036 ms
+Trigger for constraint payments_booking_id_fkey: time=0.016 calls=1
+Execution Time: 0.038 ms
+
+=== W15 run 3 ===
+Insert on payments  (cost=4.32..19.49 rows=1 width=108) (actual time=0.017..0.017 rows=1.00 loops=1)
+  Buffers: shared hit=21
+  ->  Nested Loop  (cost=4.32..19.49 rows=1 width=108) (actual time=0.010..0.010 rows=1.00 loops=1)
+        Join Filter: (p.booking_id = b.id)
+        Rows Removed by Join Filter: 5
+        Buffers: shared hit=15
+        ->  Bitmap Heap Scan on payments p  (cost=4.17..11.29 rows=1 width=24) (actual time=0.003..0.004 rows=6.00 loops=1)
+              Recheck Cond: (status = 'SUCCEEDED'::"PaymentStatus")
+              Filter: (kind = 'CHARGE'::"PaymentKind")
+              Rows Removed by Filter: 1
+              Heap Blocks: exact=1
+              Buffers: shared hit=2
+              ->  Bitmap Index Scan on payments_status_idx  (cost=0.00..4.17 rows=3 width=0) (actual time=0.001..0.001 rows=17.00 loops=1)
+                    Index Cond: (status = 'SUCCEEDED'::"PaymentStatus")
+                    Index Searches: 1
+                    Buffers: shared hit=1
+        ->  Index Scan using bookings_booking_code_key on bookings b  (cost=0.15..8.17 rows=1 width=4) (actual time=0.001..0.001 rows=1.00 loops=6)
+              Index Cond: (booking_code = 'SC-DEMO-00001'::text)
+              Index Searches: 6
+              Buffers: shared hit=12
+Planning Time: 0.038 ms
+Trigger for constraint payments_booking_id_fkey: time=0.014 calls=1
+Execution Time: 0.038 ms

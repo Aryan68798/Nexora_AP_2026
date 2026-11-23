@@ -1,0 +1,44 @@
+-- W11 | WRITE | Renter pays for the booking
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+-- WRITE queries run inside BEGIN ... ROLLBACK, so the data is unchanged
+
+-- Query:
+INSERT INTO payments (booking_id, method, status, amount, provider_ref, processed_at, updated_at)
+SELECT id, 'UPI', 'SUCCEEDED',
+       unit_price * units + cleaning_fee + service_fee + tax_amount - discount_amount,
+       'pay_DEMO0001', now(), now()
+FROM bookings WHERE booking_code = 'SC-DEMO-00001'
+RETURNING id, amount, status;
+
+=== W11 run 1 ===
+Insert on payments  (cost=0.15..8.21 rows=1 width=108) (actual time=0.064..0.064 rows=1.00 loops=1)
+  Buffers: shared hit=22 read=3 dirtied=5 written=3
+  ->  Index Scan using bookings_booking_code_key on bookings  (cost=0.15..8.21 rows=1 width=108) (actual time=0.042..0.042 rows=1.00 loops=1)
+        Index Cond: (booking_code = 'SC-DEMO-00001'::text)
+        Index Searches: 1
+        Buffers: shared hit=15 read=1 dirtied=1 written=1
+Planning Time: 0.020 ms
+Trigger for constraint payments_booking_id_fkey: time=0.023 calls=1
+Execution Time: 0.093 ms
+
+=== W11 run 2 ===
+Insert on payments  (cost=0.15..8.21 rows=1 width=108) (actual time=0.022..0.023 rows=1.00 loops=1)
+  Buffers: shared hit=25
+  ->  Index Scan using bookings_booking_code_key on bookings  (cost=0.15..8.21 rows=1 width=108) (actual time=0.011..0.011 rows=1.00 loops=1)
+        Index Cond: (booking_code = 'SC-DEMO-00001'::text)
+        Index Searches: 1
+        Buffers: shared hit=16
+Planning Time: 0.018 ms
+Trigger for constraint payments_booking_id_fkey: time=0.023 calls=1
+Execution Time: 0.050 ms
+
+=== W11 run 3 ===
+Insert on payments  (cost=0.15..8.21 rows=1 width=108) (actual time=0.020..0.020 rows=1.00 loops=1)
+  Buffers: shared hit=25
+  ->  Index Scan using bookings_booking_code_key on bookings  (cost=0.15..8.21 rows=1 width=108) (actual time=0.009..0.009 rows=1.00 loops=1)
+        Index Cond: (booking_code = 'SC-DEMO-00001'::text)
+        Index Searches: 1
+        Buffers: shared hit=16
+Planning Time: 0.018 ms
+Trigger for constraint payments_booking_id_fkey: time=0.019 calls=1
+Execution Time: 0.043 ms

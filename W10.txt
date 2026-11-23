@@ -1,0 +1,70 @@
+-- W10 | WRITE | Renter requests a booking (price copied from the listing)
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+-- WRITE queries run inside BEGIN ... ROLLBACK, so the data is unchanged
+
+-- Query:
+INSERT INTO bookings (booking_code, space_id, renter_id, starts_at, ends_at, guests, purpose,
+                      pricing_unit, unit_price, units, cleaning_fee, service_fee, tax_amount, updated_at)
+SELECT 'SC-DEMO-00001', s.id, u.id,
+       date_trunc('day', now()) + interval '25 days 10 hours',
+       date_trunc('day', now()) + interval '25 days 12 hours',
+       4, 'Team sync', 'HOUR', s.price_per_hour, 2, s.cleaning_fee,
+       ROUND(s.price_per_hour * 2 * 0.10, 2), ROUND(s.price_per_hour * 2 * 0.18, 2), now()
+FROM spaces s
+JOIN users u ON u.email = 'sneha.kulkarni@example.com'
+WHERE s.slug = 'koramangala-12-seat-boardroom'
+RETURNING id, booking_code, status;
+
+=== W10 run 1 ===
+Insert on bookings  (cost=0.29..16.39 rows=1 width=260) (actual time=0.092..0.092 rows=1.00 loops=1)
+  Buffers: shared hit=50 read=2 dirtied=6 written=2
+  ->  Nested Loop  (cost=0.29..16.39 rows=1 width=260) (actual time=0.045..0.046 rows=1.00 loops=1)
+        Buffers: shared hit=17 read=1 dirtied=1 written=1
+        ->  Index Scan using spaces_slug_key on spaces s  (cost=0.14..8.16 rows=1 width=36) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: (slug = 'koramangala-12-seat-boardroom'::text)
+              Index Searches: 1
+              Buffers: shared hit=2
+        ->  Index Scan using users_email_key on users u  (cost=0.15..8.17 rows=1 width=4) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: (email = 'sneha.kulkarni@example.com'::text)
+              Index Searches: 1
+              Buffers: shared hit=2
+Planning Time: 0.037 ms
+Trigger for constraint bookings_space_id_fkey: time=0.025 calls=1
+Trigger for constraint bookings_renter_id_fkey: time=0.018 calls=1
+Execution Time: 0.146 ms
+
+=== W10 run 2 ===
+Insert on bookings  (cost=0.29..16.39 rows=1 width=260) (actual time=0.045..0.046 rows=1.00 loops=1)
+  Buffers: shared hit=52
+  ->  Nested Loop  (cost=0.29..16.39 rows=1 width=260) (actual time=0.012..0.013 rows=1.00 loops=1)
+        Buffers: shared hit=18
+        ->  Index Scan using spaces_slug_key on spaces s  (cost=0.14..8.16 rows=1 width=36) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: (slug = 'koramangala-12-seat-boardroom'::text)
+              Index Searches: 1
+              Buffers: shared hit=2
+        ->  Index Scan using users_email_key on users u  (cost=0.15..8.17 rows=1 width=4) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: (email = 'sneha.kulkarni@example.com'::text)
+              Index Searches: 1
+              Buffers: shared hit=2
+Planning Time: 0.034 ms
+Trigger for constraint bookings_space_id_fkey: time=0.020 calls=1
+Trigger for constraint bookings_renter_id_fkey: time=0.017 calls=1
+Execution Time: 0.093 ms
+
+=== W10 run 3 ===
+Insert on bookings  (cost=0.29..16.39 rows=1 width=260) (actual time=0.053..0.053 rows=1.00 loops=1)
+  Buffers: shared hit=52
+  ->  Nested Loop  (cost=0.29..16.39 rows=1 width=260) (actual time=0.014..0.015 rows=1.00 loops=1)
+        Buffers: shared hit=18
+        ->  Index Scan using spaces_slug_key on spaces s  (cost=0.14..8.16 rows=1 width=36) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: (slug = 'koramangala-12-seat-boardroom'::text)
+              Index Searches: 1
+              Buffers: shared hit=2
+        ->  Index Scan using users_email_key on users u  (cost=0.15..8.17 rows=1 width=4) (actual time=0.001..0.001 rows=1.00 loops=1)
+              Index Cond: (email = 'sneha.kulkarni@example.com'::text)
+              Index Searches: 1
+              Buffers: shared hit=2
+Planning Time: 0.029 ms
+Trigger for constraint bookings_space_id_fkey: time=0.017 calls=1
+Trigger for constraint bookings_renter_id_fkey: time=0.013 calls=1
+Execution Time: 0.094 ms

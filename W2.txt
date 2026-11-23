@@ -1,0 +1,42 @@
+-- W2 | WRITE | Become an owner: create an owner profile for the new user
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+-- WRITE queries run inside BEGIN ... ROLLBACK, so the data is unchanged
+
+-- Query:
+INSERT INTO owner_profiles (user_id, business_name, bio, updated_at)
+SELECT id, 'New Renter Spaces', 'Spare room above my shop.', now()
+FROM users WHERE email = 'new.renter@example.com'
+RETURNING id, user_id, verification_status;
+
+=== W2 run 1 ===
+Insert on owner_profiles  (cost=0.15..8.19 rows=1 width=132) (actual time=0.052..0.052 rows=1.00 loops=1)
+  Buffers: shared hit=18 read=2 dirtied=4 written=2
+  ->  Index Scan using users_email_key on users  (cost=0.15..8.19 rows=1 width=132) (actual time=0.039..0.039 rows=1.00 loops=1)
+        Index Cond: (email = 'new.renter@example.com'::text)
+        Index Searches: 1
+        Buffers: shared hit=15 read=1 dirtied=1 written=1
+Planning Time: 0.014 ms
+Trigger for constraint owner_profiles_user_id_fkey: time=0.114 calls=1
+Execution Time: 0.171 ms
+
+=== W2 run 2 ===
+Insert on owner_profiles  (cost=0.15..8.19 rows=1 width=132) (actual time=0.014..0.015 rows=1.00 loops=1)
+  Buffers: shared hit=20
+  ->  Index Scan using users_email_key on users  (cost=0.15..8.19 rows=1 width=132) (actual time=0.008..0.008 rows=1.00 loops=1)
+        Index Cond: (email = 'new.renter@example.com'::text)
+        Index Searches: 1
+        Buffers: shared hit=16
+Planning Time: 0.016 ms
+Trigger for constraint owner_profiles_user_id_fkey: time=0.050 calls=1
+Execution Time: 0.069 ms
+
+=== W2 run 3 ===
+Insert on owner_profiles  (cost=0.15..8.19 rows=1 width=132) (actual time=0.015..0.015 rows=1.00 loops=1)
+  Buffers: shared hit=20
+  ->  Index Scan using users_email_key on users  (cost=0.15..8.19 rows=1 width=132) (actual time=0.008..0.008 rows=1.00 loops=1)
+        Index Cond: (email = 'new.renter@example.com'::text)
+        Index Searches: 1
+        Buffers: shared hit=16
+Planning Time: 0.016 ms
+Trigger for constraint owner_profiles_user_id_fkey: time=0.040 calls=1
+Execution Time: 0.059 ms

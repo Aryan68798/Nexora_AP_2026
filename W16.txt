@@ -1,0 +1,45 @@
+-- W16 | WRITE | Mark past confirmed bookings as completed (daily job)
+-- EXPLAIN (ANALYZE, BUFFERS), 3 runs on the seed data (PostgreSQL 18)
+-- WRITE queries run inside BEGIN ... ROLLBACK, so the data is unchanged
+
+-- Query:
+UPDATE bookings
+SET status = 'COMPLETED', updated_at = now()
+WHERE status = 'CONFIRMED' AND ends_at < now()
+RETURNING booking_code, status;
+
+=== W16 run 1 ===
+Update on bookings  (cost=0.15..8.18 rows=1 width=18) (actual time=0.002..0.002 rows=0.00 loops=1)
+  Buffers: shared hit=3
+  ->  Index Scan using bookings_status_idx on bookings  (cost=0.15..8.18 rows=1 width=18) (actual time=0.001..0.001 rows=0.00 loops=1)
+        Index Cond: (status = 'CONFIRMED'::"BookingStatus")
+        Filter: (ends_at < now())
+        Rows Removed by Filter: 1
+        Index Searches: 1
+        Buffers: shared hit=3
+Planning Time: 0.014 ms
+Execution Time: 0.005 ms
+
+=== W16 run 2 ===
+Update on bookings  (cost=0.15..8.18 rows=1 width=18) (actual time=0.002..0.002 rows=0.00 loops=1)
+  Buffers: shared hit=3
+  ->  Index Scan using bookings_status_idx on bookings  (cost=0.15..8.18 rows=1 width=18) (actual time=0.002..0.002 rows=0.00 loops=1)
+        Index Cond: (status = 'CONFIRMED'::"BookingStatus")
+        Filter: (ends_at < now())
+        Rows Removed by Filter: 1
+        Index Searches: 1
+        Buffers: shared hit=3
+Planning Time: 0.016 ms
+Execution Time: 0.005 ms
+
+=== W16 run 3 ===
+Update on bookings  (cost=0.15..8.18 rows=1 width=18) (actual time=0.002..0.002 rows=0.00 loops=1)
+  Buffers: shared hit=3
+  ->  Index Scan using bookings_status_idx on bookings  (cost=0.15..8.18 rows=1 width=18) (actual time=0.002..0.002 rows=0.00 loops=1)
+        Index Cond: (status = 'CONFIRMED'::"BookingStatus")
+        Filter: (ends_at < now())
+        Rows Removed by Filter: 1
+        Index Searches: 1
+        Buffers: shared hit=3
+Planning Time: 0.015 ms
+Execution Time: 0.005 ms
